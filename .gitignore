@@ -9,6 +9,13 @@ Thumbs.db
 *.swo
 
 # Build / temp
-dist/
-build/
+/dist/
+/build/
 *.log
+coverage.out
+*.test
+TailClip.exe
+/tailclip
+
+# Shortcuts 中繼輸出；簽署後成品需要納入 release。
+shortcuts/dist/*-unsigned.shortcut

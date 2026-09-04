@@ -1,0 +1,225 @@
+{
+  "name": "TailClip：取回",
+  "goal": "以一次動作讀取已配對電腦目前的純文字剪貼簿，並以 Local Only 寫入 iPhone 剪貼簿。",
+  "trigger": {
+    "type": "manual",
+    "entry": "Shortcuts App、主畫面或 Action Button"
+  },
+  "inputs": [
+    {
+      "name": "首次配對資料",
+      "type": "json_text",
+      "source": "clipboard_only_when_config_missing"
+    }
+  ],
+  "outputs": [
+    {
+      "type": "clipboard_text",
+      "description": "桌面目前的純文字，以 Local Only 寫入 iPhone 剪貼簿。"
+    },
+    {
+      "type": "notification",
+      "description": "成功時顯示「已從〈裝置名〉取回」；錯誤時顯示可採取行動的繁體中文。"
+    }
+  ],
+  "constraints": [
+    "只使用 Apple Shortcuts 與 Tailscale 原生 actions",
+    "不得使用 Run Shell Script、Run AppleScript、JavaScript 或 SSH",
+    "不得在 shortcut artifact 寫入 endpoint、token 或個人資料",
+    "設定只保存在 iCloud Drive/Shortcuts/TailClip/config.json",
+    "配對資料必須先通過 /status 驗證才可保存",
+    "Copy to Clipboard 必須啟用 Local Only",
+    "空桌面剪貼簿不可覆寫 iPhone 現有剪貼簿",
+    "成功通知不得要求使用者確認"
+  ],
+  "actions": [
+    {
+      "id": "a01",
+      "label": "Get File from Folder",
+      "purpose": "嘗試讀取 iCloud Drive/Shortcuts/TailClip/config.json；找不到時不顯示文件選擇器。",
+      "params": {
+        "path": "/Shortcuts/TailClip/config.json",
+        "error_if_not_found": false
+      }
+    },
+    {
+      "id": "a02",
+      "label": "If",
+      "purpose": "如果沒有設定檔，進入一次性配對流程。",
+      "params": {
+        "condition": "File has no value"
+      }
+    },
+    {
+      "id": "a03",
+      "label": "Get Clipboard",
+      "purpose": "取得 QR 頁按鈕剛複製的 pairing JSON。",
+      "params": {}
+    },
+    {
+      "id": "a04",
+      "label": "Get Dictionary from Input",
+      "purpose": "解析 pairing JSON 並讀取 version、base_url、token、device_name 與 tailscale_device。",
+      "params": {}
+    },
+    {
+      "id": "a05",
+      "label": "If",
+      "purpose": "拒絕版本不是 1 或缺少欄位的配對資料並停止捷徑。",
+      "params": {
+        "condition": "version is 1 and all required values have value",
+        "otherwise": "Show Alert 配對資料無效，請重新掃描電腦上的 QR；Stop Shortcut"
+      }
+    },
+    {
+      "id": "a06",
+      "label": "Get URLs from Input",
+      "purpose": "確認 base_url 使用 HTTPS 且結尾為 .ts.net/tailclip/v1。",
+      "params": {
+        "required_scheme": "https",
+        "required_suffix": ".ts.net/tailclip/v1"
+      }
+    },
+    {
+      "id": "a07",
+      "label": "Tailscale Connect",
+      "purpose": "請 Tailscale 建立連線；已連線時保持原狀。",
+      "params": {}
+    },
+    {
+      "id": "a08",
+      "label": "Wait",
+      "purpose": "給 Tailscale 最多短暫時間完成連線。",
+      "params": {
+        "seconds": 2
+      }
+    },
+    {
+      "id": "a09",
+      "label": "Get Contents of URL",
+      "purpose": "以 Bearer token 呼叫 base_url/status，確認配對真的可用。",
+      "params": {
+        "method": "GET",
+        "url": "<base_url>/status",
+        "headers": {
+          "Authorization": "Bearer <token>"
+        },
+        "timeout_seconds": 10
+      }
+    },
+    {
+      "id": "a10",
+      "label": "If / Save File",
+      "purpose": "只有 status.ok 為 true 才保存原始 pairing JSON；否則顯示指引並停止。",
+      "params": {
+        "path": "/Shortcuts/TailClip/config.json",
+        "overwrite": true,
+        "ask_where_to_save": false
+      }
+    },
+    {
+      "id": "a11",
+      "label": "Copy to Clipboard",
+      "purpose": "配對成功後清除剪貼簿中的 token。",
+      "params": {
+        "value": "",
+        "local_only": true
+      }
+    },
+    {
+      "id": "a12",
+      "label": "Otherwise / Get Dictionary from File",
+      "purpose": "已有設定時直接解析共用 config.json。",
+      "params": {}
+    },
+    {
+      "id": "a13",
+      "label": "Tailscale Connect",
+      "purpose": "確保 Tailscale 已連線；已連線時保持原狀。",
+      "params": {}
+    },
+    {
+      "id": "a14",
+      "label": "Get Contents of URL",
+      "purpose": "以 Bearer token GET 桌面目前的純文字剪貼簿。",
+      "params": {
+        "method": "GET",
+        "url": "<base_url>/clipboard/text",
+        "headers": {
+          "Authorization": "Bearer <token>"
+        },
+        "timeout_seconds": 10
+      }
+    },
+    {
+      "id": "a15",
+      "label": "If",
+      "purpose": "API 回 empty:true 時只顯示提示，不改寫 iPhone 剪貼簿。",
+      "params": {
+        "condition": "response.empty is true",
+        "then": "Show Notification 電腦剪貼簿沒有文字；Stop Shortcut"
+      }
+    },
+    {
+      "id": "a16",
+      "label": "If / Copy to Clipboard",
+      "purpose": "成功且有 text 時，以 Local Only 寫入 iPhone 剪貼簿。",
+      "params": {
+        "success_condition": "response.ok is true and response.text has value",
+        "value": "<response.text>",
+        "local_only": true,
+        "otherwise": "Show Alert 〈response.error.message〉；Stop Shortcut"
+      }
+    },
+    {
+      "id": "a17",
+      "label": "Show Notification",
+      "purpose": "顯示不需確認的短成功通知。",
+      "params": {
+        "text": "已從〈device_name〉取回"
+      }
+    }
+  ],
+  "test_cases": [
+    {
+      "name": "第一次配對後取回",
+      "input": {
+        "clipboard": "有效 pairing JSON",
+        "desktop_text": "中文、Emoji 🐾 與多行"
+      },
+      "expected": "驗證並保存 config、清除 token、GET 一次，再以 Local Only 寫入文字"
+    },
+    {
+      "name": "空桌面剪貼簿",
+      "input": {
+        "api_response": {
+          "ok": true,
+          "empty": true
+        }
+      },
+      "expected": "顯示短提示，不覆寫 iPhone 原剪貼簿"
+    },
+    {
+      "name": "Tailscale 原先未連線",
+      "input": {
+        "desktop_text": "離線恢復"
+      },
+      "expected": "Connect 後只送一次 GET；仍失敗則顯示可採取行動的錯誤"
+    },
+    {
+      "name": "失效 token",
+      "input": {
+        "api_error": "not_paired"
+      },
+      "expected": "顯示回到電腦重新掃描 QR，不覆寫 iPhone 剪貼簿"
+    }
+  ],
+  "side_effects": [
+    "可能連線 Tailscale",
+    "首次配對時寫入 iCloud Drive 設定檔",
+    "首次配對成功後清除 iPhone 剪貼簿",
+    "發送 HTTPS request 讀取桌面目前剪貼簿",
+    "成功時以 Local Only 覆寫 iPhone 剪貼簿",
+    "顯示本機通知或可採取行動的錯誤"
+  ]
+}
