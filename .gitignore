@@ -10,8 +10,8 @@ Thumbs.db
 
 # Build / temp
 /dist/*
-!/dist/TailClip-v0.1.0-alpha.1-windows-x64.zip
-!/dist/TailClip-v0.1.0-alpha.1-windows-x64.zip.sha256
+!/dist/TailClip-v*-windows-x64.zip
+!/dist/TailClip-v*-windows-x64.zip.sha256
 /build/
 *.log
 coverage.out

@@ -18,6 +18,7 @@
 - [x] 完成 Ubuntu Wayland backend、安裝腳本與 `systemd --user` service。
 - [x] 通過 format、vet、一般／race 測試、Windows／Linux x86_64 交叉編譯及 release 組裝測試。
 - [x] 產生可直接下載測試的 Windows x64 ZIP；使用者不需 Go 或自行編譯。
+- [x] `v0.1.0-alpha.2` 改以 Win32 `RtlMoveMemory` 複製 clipboard buffer，排除 Windows vet 的 uintptr 轉指標警告，不增加第三方依賴。
 - [ ] 在 Windows 11 x64 與實際 iPhone 完成首次安裝、QR 配對、雙向文字、Share Sheet、自啟、重開機與解除安裝驗收。
 - [ ] 在 Ubuntu 26.04 GNOME Wayland 與實際 iPhone 完成相同 E2E。
 - [ ] 實機驗收通過後，才把對應平台從 build candidate 改標為已支援。
@@ -413,7 +414,8 @@ Windows alpha 只有在「下載後雙擊一次、一次必要 UAC、iPhone 不�
 ## 11. 發布
 
 - 第一個 tag：`v0.1.0-alpha.1`。
-- Git 追蹤的 Windows 測試產物：`dist/TailClip-v0.1.0-alpha.1-windows-x64.zip` 及其 `.sha256`。
+- 第一個可下載測試包為 `v0.1.0-alpha.1`；目前 Windows build candidate 為 `v0.1.0-alpha.2`。
+- Git 追蹤的 Windows 測試產物：`dist/TailClip-v0.1.0-alpha.2-windows-x64.zip` 及其 `.sha256`。
 - GitHub Release artifacts：版本化 Windows x64 ZIP、Linux x86_64 tarball、兩支 signed Shortcuts 與 `SHA256SUMS`。
 - Windows ZIP 必須包含 `TailClip.exe`、`README-Windows.txt`、`Uninstall-TailClip.cmd`、`VERSION.txt`、兩支 signed Shortcuts 與包內 `SHA256SUMS.txt`。
 - release ZIP 解壓後只需雙擊 `TailClip.exe`；不得要求終端機、Go toolchain 或手動複製檔案。
