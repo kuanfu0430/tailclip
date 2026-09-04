@@ -19,6 +19,7 @@
 - [x] 通過 format、vet、一般／race 測試、Windows／Linux x86_64 交叉編譯及 release 組裝測試。
 - [x] 產生可直接下載測試的 Windows x64 ZIP；使用者不需 Go 或自行編譯。
 - [x] `v0.1.0-alpha.2` 改以 Win32 `RtlMoveMemory` 複製 clipboard buffer，排除 Windows vet 的 uintptr 轉指標警告，不增加第三方依賴。
+- [x] `v0.1.0-alpha.3` 修正本機設定頁 QR 被 `html/template` 改寫為 `#ZgotmplZ` 的問題，並讓 Windows 首次安裝以前景程序同步完成、重用既有 Serve、目前使用者權限優先及必要時 UAC fallback。
 - [ ] 在 Windows 11 x64 與實際 iPhone 完成首次安裝、QR 配對、雙向文字、Share Sheet、自啟、重開機與解除安裝驗收。
 - [ ] 在 Ubuntu 26.04 GNOME Wayland 與實際 iPhone 完成相同 E2E。
 - [ ] 實機驗收通過後，才把對應平台從 build candidate 改標為已支援。
@@ -72,13 +73,15 @@ TailClip 讓使用者在 iPhone 與 Windows／Linux 電腦之間手動傳送目�
 ### 3.1 Windows 首次設定
 
 1. 使用者下載 Windows x64 ZIP、解壓後雙擊其中唯一需要執行的 `TailClip.exe`；不需安裝 Go 或其他 runtime。
-2. 程式將自身安裝到 `%LOCALAPPDATA%\TailClip`，建立使用者層自啟並啟動 Agent。
-3. TailClip 檢查 Tailscale CLI、連線狀態、`127.0.0.1:17733` 與 `127.0.0.1:17734`。
-4. TailClip 顯示實際 `*.ts.net` 名稱與 Certificate Transparency 說明。
-5. 使用者接受一次 UAC；TailClip 只新增 `/tailclip` Serve path，不重設其他 Serve 設定。
+2. 程式將自身安裝到 `%LOCALAPPDATA%\TailClip`，建立使用者層自啟並啟動 Agent；原始前景程序同步完成後續流程，不交給無畫面的安裝子程序。
+3. TailClip 讀取本機已登入的 Tailscale tailnet、連線狀態與 `*.ts.net` 名稱，並檢查 `127.0.0.1:17733` 與 `127.0.0.1:17734`。
+4. 若既有 `/tailclip` Serve path 已指向 `127.0.0.1:17733`，直接重用，不重新設定或要求 UAC。
+5. 只有需要新增 Serve path 時才顯示 Certificate Transparency 說明；先以目前使用者權限設定，權限不足才要求一次 UAC，且不得重設其他 Serve 設定。
 6. TailClip 驗證公開 HTTPS health endpoint。
-7. 本機設定頁顯示限時 QR。
+7. 本機設定頁顯示可實際載入與掃描的限時 QR。
 8. iPhone 掃 QR，安裝兩支捷徑並點一下複製配對資料，再執行「取回」或從 Share Sheet 執行「傳送」完成配對。
+
+TailClip 不建立新的 tailnet、也不替兩台裝置執行 Tailscale 帳號配對；Windows 與 iPhone 必須已登入同一個 tailnet。安裝時不要求指定 peer 當下在線，避免 iPhone 暫時離線時阻擋桌面端設定。
 
 再次雙擊已安裝的 EXE 只開啟本機設定頁。解除安裝必須經過明確確認，只移除 TailClip 自啟、程序、檔案與自己的 Serve path。
 
@@ -319,8 +322,9 @@ Tailscale Serve 會在代理前移除 `/tailclip` mount prefix，因此 Agent �
 - Agent 必須在互動式登入使用者 session 運行，不建立 Session 0 service。
 - 使用 Win32 `OpenClipboard`、`EmptyClipboard`、`SetClipboardData`、`GetClipboardData` 與 `CF_UNICODETEXT`。
 - clipboard lock 採短暫 exponential backoff，總等待不超過 1 秒。
-- EXE 第一次執行自我複製、註冊 `HKCU` 自啟並以背景模式重啟。
-- Serve 設定由同一 EXE 的 elevated helper 執行；完成後必須直接驗證公開 HTTPS health，再開啟設定頁。
+- EXE 第一次執行自我複製、註冊 `HKCU` 自啟，並由原始前景程序同步完成安裝；Agent 本身才以背景模式啟動。
+- 已存在且目標正確的 `/tailclip` Serve path 直接重用；缺少時先由目前使用者設定，只有失敗且提升權限可能有幫助時才使用同一 EXE 的 elevated helper。
+- Serve 完成後必須直接驗證公開 HTTPS health，再開啟設定頁；本機設定頁的 QR 必須在實際瀏覽器中載入，不得出現模板安全替代值。
 - 本版不宣稱 binary 已簽章；下載與 SmartScreen 提示在 README 說明。
 
 ### 7.3 Ubuntu 26.04 GNOME Wayland
@@ -407,15 +411,15 @@ Tailscale Serve 會在代理前移除 `/tailclip` mount prefix，因此 Agent �
 
 ### 10.5 完成定義
 
-Windows alpha 只有在「下載後雙擊一次、一次必要 UAC、iPhone 不手輸設定、日後每個方向一次動作」全流程通過後才算完成。
+Windows alpha 只有在「下載後雙擊一次、至多一次必要 UAC、iPhone 不手輸設定、日後每個方向一次動作」全流程通過後才算完成。
 
 完整 M1 只有在實際 iPhone、Windows 11 x64 與 Ubuntu 26.04 x86_64 GNOME Wayland 全部通過後才可標示支援。未完成實機測試的平台只能標示為 build candidate。
 
 ## 11. 發布
 
 - 第一個 tag：`v0.1.0-alpha.1`。
-- 第一個可下載測試包為 `v0.1.0-alpha.1`；目前 Windows build candidate 為 `v0.1.0-alpha.2`。
-- Git 追蹤的 Windows 測試產物：`dist/TailClip-v0.1.0-alpha.2-windows-x64.zip` 及其 `.sha256`。
+- 第一個可下載測試包為 `v0.1.0-alpha.1`；目前 Windows build candidate 為 `v0.1.0-alpha.3`。
+- Git 追蹤的 Windows 測試產物：`dist/TailClip-v0.1.0-alpha.3-windows-x64.zip` 及其 `.sha256`；舊版測試包保留供回歸比對。
 - GitHub Release artifacts：版本化 Windows x64 ZIP、Linux x86_64 tarball、兩支 signed Shortcuts 與 `SHA256SUMS`。
 - Windows ZIP 必須包含 `TailClip.exe`、`README-Windows.txt`、`Uninstall-TailClip.cmd`、`VERSION.txt`、兩支 signed Shortcuts 與包內 `SHA256SUMS.txt`。
 - release ZIP 解壓後只需雙擊 `TailClip.exe`；不得要求終端機、Go toolchain 或手動複製檔案。

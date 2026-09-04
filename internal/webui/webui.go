@@ -116,7 +116,8 @@ func RenderDashboard(w http.ResponseWriter, data DashboardData) error {
 	}
 	view := dashboardPageData{
 		DashboardData: data,
-		QRCode:        "data:image/png;base64," + base64.StdEncoding.EncodeToString(png),
+		// QR 內容完全由程式產生；標成 template.URL，避免 html/template 將 data URL 改成 #ZgotmplZ。
+		QRCode:        template.URL("data:image/png;base64," + base64.StdEncoding.EncodeToString(png)),
 		ExpiresAtText: data.ExpiresAt.Local().Format("15:04"),
 		AgentVersion:  buildinfo.Version,
 	}
@@ -143,7 +144,7 @@ type pairingPageData struct {
 
 type dashboardPageData struct {
 	DashboardData
-	QRCode        string
+	QRCode        template.URL
 	ExpiresAtText string
 	AgentVersion  string
 }
@@ -200,7 +201,7 @@ var expiredPage = template.Must(template.New("expired").Parse(pageShellStart + `
 var dashboardPage = template.Must(template.New("dashboard").Parse(pageShellStart + `
 <main class="shell wide">
   <section class="glass dashboard">
-    <header><div class="brand"><span class="mark">T</span><span>TailClip</span></div><span class="badge">v{{.AgentVersion}}</span></header>
+    <header><div class="brand"><span class="mark">T</span><span>TailClip</span></div><span class="badge">{{.AgentVersion}}</span></header>
     <div class="grid">
       <div class="copy">
         <p class="eyebrow">{{.DeviceName}}</p>

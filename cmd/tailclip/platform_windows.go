@@ -32,8 +32,45 @@ const (
 
 var messageBox = windows.NewLazySystemDLL("user32.dll").NewProc("MessageBoxW")
 
+type windowsTailscaleClient interface {
+	Status(context.Context) (tailscale.Status, error)
+	ServeConfigured(context.Context) (bool, error)
+}
+
+type windowsInstaller struct {
+	installPath     func() (string, error)
+	copyExecutable  func(string, string) error
+	ensureAutostart func(string) error
+	ensureAgent     func(context.Context, string) error
+	newTailscale    func() (windowsTailscaleClient, error)
+	confirmHTTPS    func(string) (bool, error)
+	configureServe  func(context.Context) error
+	runElevated     func(string, string) error
+	openSettings    func(context.Context, string) error
+}
+
+func defaultWindowsInstaller() windowsInstaller {
+	return windowsInstaller{
+		installPath:     windowsInstallPath,
+		copyExecutable:  copyExecutable,
+		ensureAutostart: ensureAutostart,
+		ensureAgent:     ensureAgent,
+		newTailscale: func() (windowsTailscaleClient, error) {
+			return tailscale.New()
+		},
+		confirmHTTPS:   confirmHTTPS,
+		configureServe: configureServe,
+		runElevated:    runElevated,
+		openSettings:   openSettings,
+	}
+}
+
 func defaultAction(ctx context.Context, executable string) error {
-	target, err := windowsInstallPath()
+	return defaultWindowsInstaller().run(ctx, executable)
+}
+
+func (installer windowsInstaller) run(ctx context.Context, executable string) error {
+	target, err := installer.installPath()
 	if err != nil {
 		return err
 	}
@@ -42,47 +79,27 @@ func defaultAction(ctx context.Context, executable string) error {
 		return err
 	}
 	if !strings.EqualFold(filepath.Clean(current), filepath.Clean(target)) {
-		changed, err := copyExecutable(current, target)
-		if err != nil {
+		if err := installer.copyExecutable(current, target); err != nil {
 			return err
 		}
-		if err := ensureAutostart(target); err != nil {
-			return err
-		}
-		args := []string{}
-		if changed {
-			args = append(args, "finish-install")
-		}
-		return startDetached(target, args...)
 	}
-	if err := ensureAutostart(target); err != nil {
-		return err
-	}
-	if err := ensureAgent(ctx, target); err != nil {
-		return err
-	}
-	client, err := tailscale.New()
-	if err != nil {
-		return err
-	}
-	configured, err := client.ServeConfigured(ctx)
-	if err != nil {
-		return err
-	}
-	if !configured {
-		return finishInstall(ctx, target)
-	}
-	return openSettings(ctx, target)
+
+	// 保留由檔案總管啟動的前景程序，避免安裝交給隱藏子程序後看似沒有反應。
+	return installer.finish(ctx, target)
 }
 
 func finishInstall(ctx context.Context, executable string) error {
-	if err := ensureAutostart(executable); err != nil {
+	return defaultWindowsInstaller().finish(ctx, executable)
+}
+
+func (installer windowsInstaller) finish(ctx context.Context, executable string) error {
+	if err := installer.ensureAutostart(executable); err != nil {
 		return err
 	}
-	if err := ensureAgent(ctx, executable); err != nil {
+	if err := installer.ensureAgent(ctx, executable); err != nil {
 		return err
 	}
-	client, err := tailscale.New()
+	client, err := installer.newTailscale()
 	if err != nil {
 		return err
 	}
@@ -90,17 +107,33 @@ func finishInstall(ctx context.Context, executable string) error {
 	if err != nil {
 		return err
 	}
-	accepted, err := confirmHTTPS(status.Self.DNSName)
+	configured, err := client.ServeConfigured(ctx)
+	if err != nil {
+		return err
+	}
+	if configured {
+		return installer.openSettings(ctx, executable)
+	}
+
+	accepted, err := installer.confirmHTTPS(status.Self.DNSName)
 	if err != nil {
 		return err
 	}
 	if !accepted {
 		return errors.New("已取消 HTTPS 設定；再次雙擊 TailClip 即可繼續")
 	}
-	if err := runElevated(executable, "serve-install"); err != nil {
-		return err
+	if directErr := installer.configureServe(ctx); directErr != nil {
+		if errors.Is(directErr, tailscale.ErrNotInstalled) ||
+			errors.Is(directErr, tailscale.ErrNotRunning) ||
+			errors.Is(directErr, tailscale.ErrServeConflict) ||
+			errors.Is(directErr, context.Canceled) || errors.Is(directErr, context.DeadlineExceeded) {
+			return directErr
+		}
+		if err := installer.runElevated(executable, "serve-install"); err != nil {
+			return fmt.Errorf("目前使用者設定 Tailscale Serve 失敗（%v）；系統管理員權限重試也未完成: %w", directErr, err)
+		}
 	}
-	return openSettings(ctx, executable)
+	return installer.openSettings(ctx, executable)
 }
 
 func uninstallAction(ctx context.Context, executable string) error {
@@ -144,37 +177,37 @@ func windowsInstallPath() (string, error) {
 	return filepath.Join(base, "TailClip", "TailClip.exe"), nil
 }
 
-func copyExecutable(source, target string) (bool, error) {
+func copyExecutable(source, target string) error {
 	same, err := sameFileContent(source, target)
 	if err == nil && same {
-		return false, nil
+		return nil
 	}
 	if err := os.MkdirAll(filepath.Dir(target), 0o700); err != nil {
-		return false, fmt.Errorf("無法建立安裝目錄: %w", err)
+		return fmt.Errorf("無法建立安裝目錄: %w", err)
 	}
 	input, err := os.Open(source)
 	if err != nil {
-		return false, fmt.Errorf("無法讀取 TailClip.exe: %w", err)
+		return fmt.Errorf("無法讀取 TailClip.exe: %w", err)
 	}
 	defer input.Close()
 	temporary := target + ".new"
 	output, err := os.OpenFile(temporary, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o700)
 	if err != nil {
-		return false, fmt.Errorf("無法準備安裝檔: %w", err)
+		return fmt.Errorf("無法準備安裝檔: %w", err)
 	}
 	if _, err := io.Copy(output, input); err != nil {
 		output.Close()
 		_ = os.Remove(temporary)
-		return false, fmt.Errorf("無法複製 TailClip.exe: %w", err)
+		return fmt.Errorf("無法複製 TailClip.exe: %w", err)
 	}
 	if err := output.Sync(); err != nil {
 		output.Close()
 		_ = os.Remove(temporary)
-		return false, err
+		return err
 	}
 	if err := output.Close(); err != nil {
 		_ = os.Remove(temporary)
-		return false, err
+		return err
 	}
 	backup := target + ".old"
 	targetExists := false
@@ -183,7 +216,7 @@ func copyExecutable(source, target string) (bool, error) {
 		_ = os.Remove(backup)
 		if err := os.Rename(target, backup); err != nil {
 			_ = os.Remove(temporary)
-			return false, fmt.Errorf("無法更新安裝檔；請先結束正在執行的 TailClip 後再試: %w", err)
+			return fmt.Errorf("無法更新安裝檔；請先結束正在執行的 TailClip 後再試: %w", err)
 		}
 	}
 	if err := os.Rename(temporary, target); err != nil {
@@ -191,10 +224,10 @@ func copyExecutable(source, target string) (bool, error) {
 			_ = os.Rename(backup, target)
 		}
 		_ = os.Remove(temporary)
-		return false, fmt.Errorf("無法套用安裝檔: %w", err)
+		return fmt.Errorf("無法套用安裝檔: %w", err)
 	}
 	_ = os.Remove(backup)
-	return true, nil
+	return nil
 }
 
 func sameFileContent(left, right string) (bool, error) {

@@ -78,4 +78,13 @@ func TestRenderDashboardDoesNotEmbedPairingSecret(t *testing.T) {
 	if strings.Contains(recorder.Body.String(), secret) {
 		t.Fatal("本機頁不應以文字嵌入 pairing URL；QR data 可包含，但不該直接可搜尋")
 	}
+	if !strings.Contains(recorder.Body.String(), `src="data:image/png;base64,`) {
+		t.Fatal("設定頁應嵌入可顯示的 PNG QR")
+	}
+	if strings.Contains(recorder.Body.String(), "#ZgotmplZ") {
+		t.Fatal("QR data URL 不應被 html/template 安全過濾")
+	}
+	if strings.Contains(recorder.Body.String(), "vv0.") {
+		t.Fatal("版本標籤不應重複 v 前綴")
+	}
 }

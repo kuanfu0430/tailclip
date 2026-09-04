@@ -10,10 +10,11 @@ TailClip v0.1-alpha Windows 11 x64 測試版
 開始使用：
 
 1. 雙擊 TailClip.exe。
-2. 閱讀 HTTPS 名稱提示後繼續，並接受一次 Windows UAC。
-3. TailClip 會自動安裝至目前使用者、自動啟動 Agent，並開啟配對 QR。
-4. 用 iPhone 相機掃描 QR，依畫面安裝兩支捷徑並複製配對資料。
-5. 執行「TailClip：取回」，或從分享選單執行「TailClip：傳送」。
+2. TailClip 會沿用本機已登入的 Tailscale tailnet 與既有 /tailclip Serve 設定。
+3. 需要新增 Serve 時請閱讀 HTTPS 名稱提示；只有目前使用者權限不足時才會要求一次 Windows UAC。
+4. TailClip 會自動安裝至目前使用者、自動啟動 Agent，並開啟配對 QR。
+5. 用 iPhone 相機掃描 QR，依畫面安裝兩支捷徑並複製配對資料。
+6. 執行「TailClip：取回」，或從分享選單執行「TailClip：傳送」。
 
 不需要安裝 Go，也不需要手動輸入網址或 token。
 
