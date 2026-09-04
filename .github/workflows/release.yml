@@ -28,16 +28,38 @@ jobs:
         env:
           VERSION: ${{ github.ref_name }}
         run: |
-          mkdir -p dist linux-package
-          GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags="-s -w -H=windowsgui -X github.com/kuanfu0430/tailclip/internal/buildinfo.Version=${VERSION}" -o dist/TailClip.exe ./cmd/tailclip
+          mkdir -p release-output windows-package linux-package
+          GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags="-s -w -H=windowsgui -X github.com/kuanfu0430/tailclip/internal/buildinfo.Version=${VERSION}" -o windows-package/TailClip.exe ./cmd/tailclip
+          cp packaging/windows/README-Windows.txt packaging/windows/Uninstall-TailClip.cmd windows-package/
+          cp shortcuts/dist/TailClip-Send.shortcut shortcuts/dist/TailClip-Pull.shortcut windows-package/
+          printf '%s\n' "${VERSION}" > windows-package/VERSION.txt
+          cd windows-package
+          sha256sum TailClip.exe README-Windows.txt Uninstall-TailClip.cmd VERSION.txt TailClip-Send.shortcut TailClip-Pull.shortcut > SHA256SUMS.txt
+          zip -9 -r "../release-output/TailClip-${VERSION}-windows-x64.zip" .
+          cd ..
           GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags="-s -w -X github.com/kuanfu0430/tailclip/internal/buildinfo.Version=${VERSION}" -o linux-package/tailclip ./cmd/tailclip
           cp packaging/linux/install.sh packaging/linux/uninstall.sh packaging/linux/tailclip.service linux-package/
           chmod 0755 linux-package/tailclip linux-package/install.sh linux-package/uninstall.sh
-          tar -C linux-package -czf dist/tailclip-linux-amd64.tar.gz .
-          cp shortcuts/dist/TailClip-Send.shortcut shortcuts/dist/TailClip-Pull.shortcut dist/
-          cd dist
-          sha256sum TailClip.exe tailclip-linux-amd64.tar.gz TailClip-Send.shortcut TailClip-Pull.shortcut > SHA256SUMS
+          tar -C linux-package -czf release-output/tailclip-linux-amd64.tar.gz .
+          cp shortcuts/dist/TailClip-Send.shortcut shortcuts/dist/TailClip-Pull.shortcut release-output/
+          cd release-output
+          sha256sum "TailClip-${VERSION}-windows-x64.zip" > "TailClip-${VERSION}-windows-x64.zip.sha256"
+          sha256sum "TailClip-${VERSION}-windows-x64.zip" tailclip-linux-amd64.tar.gz TailClip-Send.shortcut TailClip-Pull.shortcut > SHA256SUMS
+      - name: 驗證發行內容
+        env:
+          VERSION: ${{ github.ref_name }}
+        run: |
+          mkdir package-check
+          unzip -q "release-output/TailClip-${VERSION}-windows-x64.zip" -d package-check
+          test -s package-check/TailClip.exe
+          test -s package-check/README-Windows.txt
+          test -s package-check/Uninstall-TailClip.cmd
+          test -s package-check/VERSION.txt
+          test -s package-check/TailClip-Send.shortcut
+          test -s package-check/TailClip-Pull.shortcut
+          (cd package-check && sha256sum -c SHA256SUMS.txt)
+          (cd release-output && sha256sum -c SHA256SUMS)
       - name: 建立 GitHub alpha release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "${GITHUB_REF_NAME}" dist/* --prerelease --generate-notes --title "TailClip ${GITHUB_REF_NAME}"
+        run: gh release create "${GITHUB_REF_NAME}" release-output/* --prerelease --generate-notes --title "TailClip ${GITHUB_REF_NAME}"

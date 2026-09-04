@@ -46,14 +46,42 @@ jobs:
           GOOS: windows
           GOARCH: amd64
           CGO_ENABLED: 0
-        run: go build -trimpath -ldflags="-s -w -H=windowsgui" -o dist/TailClip.exe ./cmd/tailclip
+        run: |
+          mkdir -p build-output windows-package
+          go build -trimpath -ldflags="-s -w -H=windowsgui" -o windows-package/TailClip.exe ./cmd/tailclip
+          cp packaging/windows/README-Windows.txt packaging/windows/Uninstall-TailClip.cmd windows-package/
+          cp shortcuts/dist/TailClip-Send.shortcut shortcuts/dist/TailClip-Pull.shortcut windows-package/
+          printf 'CI build %s\n' "${GITHUB_SHA}" > windows-package/VERSION.txt
+          cd windows-package
+          sha256sum TailClip.exe README-Windows.txt Uninstall-TailClip.cmd VERSION.txt TailClip-Send.shortcut TailClip-Pull.shortcut > SHA256SUMS.txt
+          zip -9 -r ../build-output/TailClip-Windows-x64.zip .
       - name: Linux x86_64 build candidate
         env:
           GOOS: linux
           GOARCH: amd64
           CGO_ENABLED: 0
-        run: go build -trimpath -ldflags="-s -w" -o dist/tailclip ./cmd/tailclip
+        run: |
+          mkdir -p linux-package
+          go build -trimpath -ldflags="-s -w" -o linux-package/tailclip ./cmd/tailclip
+          cp packaging/linux/install.sh packaging/linux/uninstall.sh packaging/linux/tailclip.service linux-package/
+          chmod 0755 linux-package/tailclip linux-package/install.sh linux-package/uninstall.sh
+          tar -C linux-package -czf build-output/tailclip-linux-amd64.tar.gz .
+          cp shortcuts/dist/TailClip-Send.shortcut shortcuts/dist/TailClip-Pull.shortcut build-output/
+          cd build-output
+          sha256sum TailClip-Windows-x64.zip tailclip-linux-amd64.tar.gz TailClip-Send.shortcut TailClip-Pull.shortcut > SHA256SUMS
+      - name: 驗證 build candidate 內容
+        run: |
+          mkdir package-check
+          unzip -q build-output/TailClip-Windows-x64.zip -d package-check
+          test -s package-check/TailClip.exe
+          test -s package-check/README-Windows.txt
+          test -s package-check/Uninstall-TailClip.cmd
+          test -s package-check/VERSION.txt
+          test -s package-check/TailClip-Send.shortcut
+          test -s package-check/TailClip-Pull.shortcut
+          (cd package-check && sha256sum -c SHA256SUMS.txt)
+          (cd build-output && sha256sum -c SHA256SUMS)
       - uses: actions/upload-artifact@v4
         with:
           name: build-candidates
-          path: dist/
+          path: build-output/

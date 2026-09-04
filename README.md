@@ -2,91 +2,55 @@
 
 TailClip 是一個以 Tailscale 私有網路連接 iPhone 與 Windows／Linux 的輕量剪貼簿工具。它不需要公開中繼站，不保存剪貼簿歷史，也不會在背景自動傳送每一次複製內容。
 
-> **目前狀態：v0.1-alpha 開發中。** 倉庫正在建立第一個可日用的純文字版本；尚未發布已完成實機驗收的安裝檔。
+> **目前提供未簽章的 alpha 測試版。** Windows 可能顯示 SmartScreen 警告；尚未通過實機驗收的平台只代表可測試，不代表正式支援。
 
-## 目標體驗
+## Windows 11 快速開始
 
-第一次設定：
+需要：
 
-1. 在 Windows 雙擊 `TailClip.exe`，或在 Ubuntu 執行一支安裝腳本。
-2. TailClip 自動啟動 Agent、設定 Tailscale Serve 並顯示 QR。
-3. iPhone 掃一次 QR，安裝「TailClip：傳送」與「TailClip：取回」。
-4. 不需要手動輸入 URL 或 token。
-
-日常使用：
-
-- **傳送：** 在 iPhone 複製文字或從 Share Sheet 執行「TailClip：傳送」，之後可直接在電腦貼上。
-- **取回：** 在 iPhone 執行「TailClip：取回」，之後可直接貼上電腦目前的文字剪貼簿。
-- 捷徑會在需要時自動連線 Tailscale；每個方向都只需一次明確操作。
-
-## v0.1-alpha 支援範圍
-
-- iOS 26 Shortcuts。
 - Windows 11 x64。
-- Ubuntu 26.04 x86_64 GNOME Wayland。
+- Windows 與 iPhone 已安裝 Tailscale、登入同一個 tailnet 並連線。
+- iPhone 使用 iOS 26。
+
+下載並使用：
+
+1. 下載 [TailClip Windows x64 alpha 壓縮包](dist/TailClip-v0.1.0-alpha.1-windows-x64.zip)。
+2. 在檔案總管按「全部解壓縮」，不要直接在 ZIP 預覽中執行。
+3. 雙擊解壓後的 `TailClip.exe`。不需要安裝 Go 或其他 runtime。
+4. 閱讀 HTTPS 名稱提示並接受一次 UAC；TailClip 會自動安裝、自啟、設定 Tailscale Serve 並開啟配對 QR。
+5. 用 iPhone 相機掃描 QR，依畫面安裝「TailClip：傳送」與「TailClip：取回」，再按一下複製配對資料。
+6. 執行「TailClip：取回」，或從分享選單執行「TailClip：傳送」，即可完成配對與首次測試。
+
+不需從原始碼編譯。相同壓縮包也會附在 [GitHub Releases](https://github.com/kuanfu0430/tailclip/releases)；下載後可用 [SHA-256 檔](dist/TailClip-v0.1.0-alpha.1-windows-x64.zip.sha256) 核對完整性。
+
+## 日常使用
+
+- **傳送：** 在 iPhone 複製文字後執行「TailClip：傳送」，或直接從 App 的分享選單執行它；之後可在電腦貼上。
+- **取回：** 在 iPhone 執行「TailClip：取回」；之後可貼上電腦目前的文字剪貼簿。
+- 捷徑會在需要時自動連線 Tailscale，不顯示方向或裝置選單。
+
+再次雙擊壓縮包內的 `TailClip.exe` 會開啟狀態與配對頁。需要移除時，雙擊同一資料夾內的 `Uninstall-TailClip.cmd`，再於確認畫面選擇同意；Tailscale 本身不會被移除。
+
+## Alpha 測試範圍
+
 - UTF-8 純文字、Unicode、Emoji、多行文字與 1 MiB 上限。
-- Share Sheet 純文字／網址；網址在本版視為純文字。
+- iOS 26 Shortcuts 與 Share Sheet 純文字／網址；網址視為純文字。
+- Windows 11 x64。
+- Ubuntu 26.04 x86_64 GNOME Wayland；Linux 測試包請由 [GitHub Releases](https://github.com/kuanfu0430/tailclip/releases) 下載。
 
 尚未支援：圖片、HTML、檔案、Taildrop、X11、多桌面選擇、原生 iOS App、自動同步、Tray 與自動更新。
 
-## 架構
-
-```text
-iOS Shortcuts
-    ↓ HTTPS + pairing token
-Tailscale Serve /tailclip
-    ↓
-127.0.0.1:17733 TailClip Agent
-    ↓
-Windows CF_UNICODETEXT / Linux wl-clipboard
-```
-
-Agent 永遠只監聽 `127.0.0.1`。Tailscale Serve 提供 tailnet 內 HTTPS；TailClip 不會啟用 Funnel。
-
-## 開發
-
-本專案使用 Go 1.27.1。標準檢查為：
-
-```bash
-go test ./...
-go test -race ./...
-go vet ./...
-```
-
-平台 release 由 GitHub Actions 產出；Windows／Linux 的實際剪貼簿測試仍必須在互動式桌面 session 完成，不能以交叉編譯代替。
-
-## 目前開發中斷點（2026-09-04）
-
-- 共用 Agent、HTTP API、設定、認證、配對頁、Tailscale Serve 控制與 fake clipboard 測試已建立。
-- 「TailClip：傳送」的空白條件參數已修正、重開驗證並重新簽署；兩支捷徑成品均已內嵌至設定頁下載流程。
-- 本機格式、vet、一般／race 測試、Windows／Linux x86_64 交叉編譯與完整 release 組裝檢查已通過。
-- 下一個最短路徑是以目前 build candidate 直接進行 iPhone ↔ Windows 實機驗收，再做 Ubuntu Wayland 實機驗收；只修正驗收發現的問題。
-- 尚未完成 Windows 安裝實測、Ubuntu 安裝實測與任何平台的完整 E2E，因此目前不宣稱平台支援已通過。
-
-## 文件
-
-- [技術與產品規格](docs/SPEC.md)
-
-`docs/SPEC.md` 是目前唯一工程契約；README 只保留使用方式、支援範圍與開發入口。
-
-## 隱私與安全預設
+## 隱私
 
 - 手動觸發，不監聽所有剪貼簿變更。
 - 不建立剪貼簿歷史或離線佇列。
 - 日誌不記錄內容、token 或配對網址。
-- 以 256-bit pairing token 保護讀寫 endpoint。
-- 設定頁與 API 都只在 loopback 監聽，再由 Serve 暴露必要路徑。
+- 桌面服務只監聽本機，透過 Tailscale Serve 提供 tailnet 內 HTTPS；不啟用 Funnel。
 - HTTPS 憑證會讓完整 `*.ts.net` 裝置名稱出現在 Certificate Transparency 紀錄；設定畫面會先顯示實際名稱並說明。
 
-## 專案階段
+## 開發文件
 
-- [x] 產品方向與安全邊界。
-- [x] v0.2 精簡規格。
-- [x] 共用 Agent 與 API（fake clipboard 自測）。
-- [ ] Windows 11 x64 垂直切片。
-- [ ] iOS 26 雙捷徑與一次 QR 配對（捷徑已簽署並內嵌，尚待實機驗收）。
-- [ ] Ubuntu 26.04 GNOME Wayland。
-- [ ] `v0.1.0-alpha.1` release。
+需求、架構、API、安全邊界、實作決策、測試條件與目前進度統一記錄於 [TailClip 技術與產品規格](docs/SPEC.md)。README 只說明使用者能做什麼以及如何安裝、操作與移除。
 
 ## 授權與商標
 

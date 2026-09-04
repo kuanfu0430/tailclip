@@ -9,7 +9,9 @@ Thumbs.db
 *.swo
 
 # Build / temp
-/dist/
+/dist/*
+!/dist/TailClip-v0.1.0-alpha.1-windows-x64.zip
+!/dist/TailClip-v0.1.0-alpha.1-windows-x64.zip.sha256
 /build/
 *.log
 coverage.out

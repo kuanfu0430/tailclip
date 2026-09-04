@@ -8,6 +8,22 @@
 
 ---
 
+## 0. 實作進度
+
+最後更新：2026-09-04。
+
+- [x] 將規格收斂為 UTF-8 純文字 M1，完成共用設定、認證、API、限流、配對與無內容日誌。
+- [x] 完成 Windows Win32 clipboard backend、自我安裝、自啟、Serve 設定、HTTPS health 與本機 QR 頁。
+- [x] 建立並簽署「TailClip：傳送」與「TailClip：取回」，將成品內嵌至 Windows／Linux binary。
+- [x] 完成 Ubuntu Wayland backend、安裝腳本與 `systemd --user` service。
+- [x] 通過 format、vet、一般／race 測試、Windows／Linux x86_64 交叉編譯及 release 組裝測試。
+- [x] 產生可直接下載測試的 Windows x64 ZIP；使用者不需 Go 或自行編譯。
+- [ ] 在 Windows 11 x64 與實際 iPhone 完成首次安裝、QR 配對、雙向文字、Share Sheet、自啟、重開機與解除安裝驗收。
+- [ ] 在 Ubuntu 26.04 GNOME Wayland 與實際 iPhone 完成相同 E2E。
+- [ ] 實機驗收通過後，才把對應平台從 build candidate 改標為已支援。
+
+目前決策：Git 只追蹤版本化的完整 Windows 測試 ZIP 與其 checksum；裸 EXE、臨時 staging 目錄及其他可重建輸出仍忽略。原因是測試者必須能從 GitHub 直接下載使用，但倉庫不應混入每次 CI 都會變動的中繼檔。
+
 ## 1. 產品目標
 
 TailClip 讓使用者在 iPhone 與 Windows／Linux 電腦之間手動傳送目前的純文字剪貼簿。它利用既有的 Tailscale 私有網路，不建立公開中繼站、帳號系統或剪貼簿歷史。
@@ -54,14 +70,14 @@ TailClip 讓使用者在 iPhone 與 Windows／Linux 電腦之間手動傳送目�
 
 ### 3.1 Windows 首次設定
 
-1. 使用者下載並雙擊 `TailClip.exe`。
+1. 使用者下載 Windows x64 ZIP、解壓後雙擊其中唯一需要執行的 `TailClip.exe`；不需安裝 Go 或其他 runtime。
 2. 程式將自身安裝到 `%LOCALAPPDATA%\TailClip`，建立使用者層自啟並啟動 Agent。
 3. TailClip 檢查 Tailscale CLI、連線狀態、`127.0.0.1:17733` 與 `127.0.0.1:17734`。
 4. TailClip 顯示實際 `*.ts.net` 名稱與 Certificate Transparency 說明。
 5. 使用者接受一次 UAC；TailClip 只新增 `/tailclip` Serve path，不重設其他 Serve 設定。
 6. TailClip 驗證公開 HTTPS health endpoint。
 7. 本機設定頁顯示限時 QR。
-8. iPhone 掃 QR，安裝兩支捷徑，點一下複製配對資料，再執行任一捷徑完成配對。
+8. iPhone 掃 QR，安裝兩支捷徑並點一下複製配對資料，再執行「取回」或從 Share Sheet 執行「傳送」完成配對。
 
 再次雙擊已安裝的 EXE 只開啟本機設定頁。解除安裝必須經過明確確認，只移除 TailClip 自啟、程序、檔案與自己的 Serve path。
 
@@ -297,6 +313,8 @@ Tailscale Serve 會在代理前移除 `/tailclip` mount prefix，因此 Agent �
 
 ### 7.2 Windows 11 x64
 
+- 發行物為一個可直接解壓的 ZIP，內含 `TailClip.exe`、兩支已簽署 Shortcut、Windows 使用說明、版本、內部 checksum 與解除安裝入口。
+- 安裝只要求雙擊 `TailClip.exe`；其他檔案是說明、備援或移除入口，不得要求使用者執行額外安裝腳本。
 - Agent 必須在互動式登入使用者 session 運行，不建立 Session 0 service。
 - 使用 Win32 `OpenClipboard`、`EmptyClipboard`、`SetClipboardData`、`GetClipboardData` 與 `CF_UNICODETEXT`。
 - clipboard lock 採短暫 exponential backoff，總等待不超過 1 秒。
@@ -395,7 +413,10 @@ Windows alpha 只有在「下載後雙擊一次、一次必要 UAC、iPhone 不�
 ## 11. 發布
 
 - 第一個 tag：`v0.1.0-alpha.1`。
-- artifacts：Windows EXE、Linux x86_64 tarball、兩支 signed Shortcuts、`SHA256SUMS`。
+- Git 追蹤的 Windows 測試產物：`dist/TailClip-v0.1.0-alpha.1-windows-x64.zip` 及其 `.sha256`。
+- GitHub Release artifacts：版本化 Windows x64 ZIP、Linux x86_64 tarball、兩支 signed Shortcuts 與 `SHA256SUMS`。
+- Windows ZIP 必須包含 `TailClip.exe`、`README-Windows.txt`、`Uninstall-TailClip.cmd`、`VERSION.txt`、兩支 signed Shortcuts 與包內 `SHA256SUMS.txt`。
+- release ZIP 解壓後只需雙擊 `TailClip.exe`；不得要求終端機、Go toolchain 或手動複製檔案。
 - CI 不保存或產生真實配對 token。
 - 本版沒有自動更新；升級前保留相容的 `config.json`，未知 config version 安全停止並提示重新設定。
 
