@@ -28,6 +28,8 @@ const (
 	mbIconError       = 0x00000010
 	idYes             = 6
 	createNoWindow    = 0x08000000
+	autostartKeyPath  = `Software\Microsoft\Windows\CurrentVersion\Run`
+	autostartValue    = "TailClip"
 )
 
 var messageBox = windows.NewLazySystemDLL("user32.dll").NewProc("MessageBoxW")
@@ -243,16 +245,39 @@ func sameFileContent(left, right string) (bool, error) {
 }
 
 func ensureAutostart(executable string) error {
-	key, _, err := registry.CreateKey(registry.CURRENT_USER, `Software\Microsoft\Windows\CurrentVersion\Run`, registry.SET_VALUE)
+	key, _, err := registry.CreateKey(registry.CURRENT_USER, autostartKeyPath, registry.SET_VALUE)
 	if err != nil {
 		return fmt.Errorf("無法建立使用者自啟: %w", err)
 	}
 	defer key.Close()
-	return key.SetStringValue("TailClip", syscall.EscapeArg(executable)+" agent")
+	return key.SetStringValue(autostartValue, autostartCommand(executable))
+}
+
+func autostartEnabled(executable string) (bool, error) {
+	key, err := registry.OpenKey(registry.CURRENT_USER, autostartKeyPath, registry.QUERY_VALUE)
+	if errors.Is(err, registry.ErrNotExist) {
+		return false, nil
+	}
+	if err != nil {
+		return false, fmt.Errorf("無法讀取使用者自啟設定: %w", err)
+	}
+	defer key.Close()
+	value, _, err := key.GetStringValue(autostartValue)
+	if errors.Is(err, registry.ErrNotExist) {
+		return false, nil
+	}
+	if err != nil {
+		return false, fmt.Errorf("無法讀取使用者自啟設定: %w", err)
+	}
+	return strings.EqualFold(strings.TrimSpace(value), autostartCommand(executable)), nil
+}
+
+func autostartCommand(executable string) string {
+	return syscall.EscapeArg(executable) + " agent"
 }
 
 func removeAutostart() error {
-	key, err := registry.OpenKey(registry.CURRENT_USER, `Software\Microsoft\Windows\CurrentVersion\Run`, registry.SET_VALUE)
+	key, err := registry.OpenKey(registry.CURRENT_USER, autostartKeyPath, registry.SET_VALUE)
 	if errors.Is(err, registry.ErrNotExist) {
 		return nil
 	}
@@ -260,7 +285,7 @@ func removeAutostart() error {
 		return fmt.Errorf("無法開啟使用者自啟設定: %w", err)
 	}
 	defer key.Close()
-	if err := key.DeleteValue("TailClip"); err != nil && !errors.Is(err, registry.ErrNotExist) {
+	if err := key.DeleteValue(autostartValue); err != nil && !errors.Is(err, registry.ErrNotExist) {
 		return fmt.Errorf("無法移除使用者自啟: %w", err)
 	}
 	return nil

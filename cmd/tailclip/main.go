@@ -41,7 +41,7 @@ func run() error {
 	}
 	switch os.Args[1] {
 	case "agent":
-		return runAgent()
+		return runAgent(executable)
 	case "open":
 		return openSettings(ctx, executable)
 	case "finish-install":
@@ -60,7 +60,7 @@ func run() error {
 	}
 }
 
-func runAgent() error {
+func runAgent(executable string) error {
 	configPath, err := config.DefaultPath()
 	if err != nil {
 		return err
@@ -91,7 +91,29 @@ func runAgent() error {
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
-	return service.Run(ctx, agent.ListenAddress)
+
+	agentDone := make(chan error, 1)
+	go func() { agentDone <- service.Run(ctx, agent.ListenAddress) }()
+
+	desktop, err := startDesktopUI(ctx, executable, stop)
+	if err != nil {
+		stop()
+		<-agentDone
+		return err
+	}
+	defer desktop.Close()
+
+	select {
+	case err := <-agentDone:
+		return err
+	case err := <-desktop.Done():
+		stop()
+		agentErr := <-agentDone
+		if err != nil {
+			return err
+		}
+		return agentErr
+	}
 }
 
 func configureServe(ctx context.Context) error {
@@ -169,8 +191,26 @@ func openSettings(ctx context.Context, executable string) error {
 }
 
 func ensureAgent(ctx context.Context, executable string) error {
-	if localHealth(ctx) {
-		return nil
+	if runningVersion, healthy := localAgentVersion(ctx); healthy {
+		if runningVersion == buildinfo.Version {
+			return nil
+		}
+		if err := stopAgent(ctx); err != nil {
+			return fmt.Errorf("無法結束舊版 TailClip Agent: %w", err)
+		}
+		deadline := time.Now().Add(5 * time.Second)
+		for time.Now().Before(deadline) && localHealth(ctx) {
+			timer := time.NewTimer(100 * time.Millisecond)
+			select {
+			case <-ctx.Done():
+				timer.Stop()
+				return ctx.Err()
+			case <-timer.C:
+			}
+		}
+		if localHealth(ctx) {
+			return errors.New("舊版 TailClip Agent 未能結束；請從工作管理員結束 TailClip 後再試")
+		}
 	}
 	if err := startDetached(executable, "agent"); err != nil {
 		return fmt.Errorf("無法啟動 TailClip Agent: %w", err)
@@ -192,26 +232,35 @@ func ensureAgent(ctx context.Context, executable string) error {
 }
 
 func localHealth(ctx context.Context) bool {
+	_, healthy := localAgentVersion(ctx)
+	return healthy
+}
+
+func localAgentVersion(ctx context.Context) (string, bool) {
 	requestContext, cancel := context.WithTimeout(ctx, 600*time.Millisecond)
 	defer cancel()
 	request, err := http.NewRequestWithContext(requestContext, http.MethodGet, "http://"+agent.ListenAddress+"/v1/health", nil)
 	if err != nil {
-		return false
+		return "", false
 	}
 	response, err := http.DefaultClient.Do(request)
 	if err != nil {
-		return false
+		return "", false
 	}
 	defer response.Body.Close()
 	if response.StatusCode != http.StatusOK {
-		return false
+		return "", false
 	}
 	var result struct {
-		Status  string `json:"status"`
-		Service string `json:"service"`
+		Status       string `json:"status"`
+		Service      string `json:"service"`
+		AgentVersion string `json:"agent_version"`
 	}
-	return json.NewDecoder(io.LimitReader(response.Body, 32<<10)).Decode(&result) == nil &&
-		result.Status == "ok" && result.Service == "tailclip-agent"
+	if json.NewDecoder(io.LimitReader(response.Body, 32<<10)).Decode(&result) != nil ||
+		result.Status != "ok" || result.Service != "tailclip-agent" {
+		return "", false
+	}
+	return result.AgentVersion, true
 }
 
 func stopAgent(ctx context.Context) error {

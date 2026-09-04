@@ -181,3 +181,11 @@ func TestWindowsInstallerDoesNotElevateKnownStateError(t *testing.T) {
 		}
 	}
 }
+
+func TestAutostartCommandQuotesExecutablePath(t *testing.T) {
+	got := autostartCommand(`C:\Users\Tester Name\AppData\Local\TailClip\TailClip.exe`)
+	want := `"C:\Users\Tester Name\AppData\Local\TailClip\TailClip.exe" agent`
+	if got != want {
+		t.Fatalf("autostartCommand()=%q want=%q", got, want)
+	}
+}

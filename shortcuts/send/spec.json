@@ -33,6 +33,8 @@
     "不得在 shortcut artifact 寫入 endpoint、token 或個人資料",
     "設定只保存在 iCloud Drive/Shortcuts/TailClip/config.json",
     "配對資料必須先通過 /status 驗證才可保存",
+    "所有 API 位址必須先經過原生 URL action，不得把 Text 或 RTF 直接交給 Get Contents of URL",
+    "所有 If action 只能保留必要且已填值的條件，不得含空白條件列",
     "傳送內容必須是非空 UTF-8 純文字且不超過 1048576 bytes",
     "成功通知不得要求使用者確認"
   ],
@@ -108,11 +110,12 @@
     },
     {
       "id": "a09",
-      "label": "Get Contents of URL",
-      "purpose": "以 Bearer token 呼叫 base_url/status，確認配對真的可用。",
+      "label": "URL / Get Contents of URL",
+      "purpose": "先用 URL action 將 base_url/status 建成 URL 型別，再以 Bearer token 呼叫並確認配對真的可用。",
       "params": {
         "method": "GET",
         "url": "<base_url>/status",
+        "url_input_type": "URL action output",
         "headers": {
           "Authorization": "Bearer <token>"
         },
@@ -180,11 +183,12 @@
     },
     {
       "id": "a17",
-      "label": "Get Contents of URL",
-      "purpose": "將文字包成 JSON，以 Bearer token 傳到桌面剪貼簿。",
+      "label": "URL / Get Contents of URL",
+      "purpose": "先用 URL action 將 base_url/clipboard/text 建成 URL 型別，再把文字包成 JSON 並以 Bearer token 傳到桌面剪貼簿。",
       "params": {
         "method": "POST",
         "url": "<base_url>/clipboard/text",
+        "url_input_type": "URL action output",
         "headers": {
           "Authorization": "Bearer <token>",
           "Content-Type": "application/json"

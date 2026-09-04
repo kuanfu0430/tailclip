@@ -20,6 +20,7 @@
 - [x] 產生可直接下載測試的 Windows x64 ZIP；使用者不需 Go 或自行編譯。
 - [x] `v0.1.0-alpha.2` 改以 Win32 `RtlMoveMemory` 複製 clipboard buffer，排除 Windows vet 的 uintptr 轉指標警告，不增加第三方依賴。
 - [x] `v0.1.0-alpha.3` 修正本機設定頁 QR 被 `html/template` 改寫為 `#ZgotmplZ` 的問題，並讓 Windows 首次安裝以前景程序同步完成、重用既有 Serve、目前使用者權限優先及必要時 UAC fallback。
+- [x] `v0.1.0-alpha.4` 修正兩支 Shortcut 的空白條件與 RTF 隱式轉 URL 問題，並以原生 Win32 通知區圖示加入開啟設定頁、自啟切換與結束操作；安裝新版時會停止仍在執行的舊版 Agent 並啟動新版。已完成捷徑重開、重新匯出、簽署、Windows x64 交叉編譯與完整 ZIP 驗證。
 - [ ] 在 Windows 11 x64 與實際 iPhone 完成首次安裝、QR 配對、雙向文字、Share Sheet、自啟、重開機與解除安裝驗收。
 - [ ] 在 Ubuntu 26.04 GNOME Wayland 與實際 iPhone 完成相同 E2E。
 - [ ] 實機驗收通過後，才把對應平台從 build candidate 改標為已支援。
@@ -50,7 +51,7 @@ TailClip 讓使用者在 iPhone 與 Windows／Linux 電腦之間手動傳送目�
 - Ubuntu 26.04 x86_64 GNOME Wayland 的雙向文字傳送。
 - 兩支固定捷徑：「TailClip：傳送」與「TailClip：取回」。
 - iOS 端在需要時自動連線 Tailscale。
-- Windows 單一 EXE 自動安裝、使用者登入自啟、Serve 設定、診斷與 QR 配對。
+- Windows 單一 EXE 自動安裝、通知區常駐、可切換的使用者登入自啟、Serve 設定、診斷與 QR 配對。
 - Ubuntu 一支安裝腳本、`systemd --user` 自啟、Serve 設定、診斷與 QR 配對。
 - 未配對請求無法讀取或覆蓋桌面剪貼簿。
 - 不保存剪貼簿內容、不上傳遙測、不啟用 Tailscale Funnel。
@@ -60,7 +61,7 @@ TailClip 讓使用者在 iPhone 與 Windows／Linux 電腦之間手動傳送目�
 - HTML、Rich Text、圖片、實體檔案與 Taildrop。
 - Linux X11、KDE、其他發行版與 headless session。
 - 多台桌面選擇或多組獨立 iPhone token。
-- Windows Tray、Linux桌面選單。
+- Linux 桌面選單。
 - 原生 iOS App、Keychain、App Intents。
 - 被動背景監聽、完全自動同步、離線排隊。
 - 自動更新、Windows code signing、deb／rpm／AppImage。
@@ -83,7 +84,7 @@ TailClip 讓使用者在 iPhone 與 Windows／Linux 電腦之間手動傳送目�
 
 TailClip 不建立新的 tailnet、也不替兩台裝置執行 Tailscale 帳號配對；Windows 與 iPhone 必須已登入同一個 tailnet。安裝時不要求指定 peer 當下在線，避免 iPhone 暫時離線時阻擋桌面端設定。
 
-再次雙擊已安裝的 EXE 只開啟本機設定頁。解除安裝必須經過明確確認，只移除 TailClip 自啟、程序、檔案與自己的 Serve path。
+安裝完成後 Agent 必須在 Windows 通知區顯示 TailClip 圖示。按兩下圖示或選擇「開啟連線與配對頁面」會打開本機設定頁；「登入 Windows 後自動啟動」可直接勾選或取消，且不得改動 Windows 帳號登入方式；「結束 TailClip」只結束目前程序。再次雙擊已安裝的 EXE 只開啟本機設定頁。解除安裝必須經過明確確認，只移除 TailClip 自啟、程序、檔案與自己的 Serve path。
 
 ### 3.2 Ubuntu 首次設定
 
@@ -323,6 +324,7 @@ Tailscale Serve 會在代理前移除 `/tailclip` mount prefix，因此 Agent �
 - 使用 Win32 `OpenClipboard`、`EmptyClipboard`、`SetClipboardData`、`GetClipboardData` 與 `CF_UNICODETEXT`。
 - clipboard lock 採短暫 exponential backoff，總等待不超過 1 秒。
 - EXE 第一次執行自我複製、註冊 `HKCU` 自啟，並由原始前景程序同步完成安裝；Agent 本身才以背景模式啟動。
+- Agent 使用 Win32 通知區圖示提供「開啟連線與配對頁面」、「登入 Windows 後自動啟動」核取項目與「結束 TailClip」；不為此導入 GUI framework 或額外背景程序。
 - 已存在且目標正確的 `/tailclip` Serve path 直接重用；缺少時先由目前使用者設定，只有失敗且提升權限可能有幫助時才使用同一 EXE 的 elevated helper。
 - Serve 完成後必須直接驗證公開 HTTPS health，再開啟設定頁；本機設定頁的 QR 必須在實際瀏覽器中載入，不得出現模板安全替代值。
 - 本版不宣稱 binary 已簽章；下載與 SmartScreen 提示在 README 說明。
@@ -342,12 +344,15 @@ Tailscale Serve 會在代理前移除 `/tailclip` mount prefix，因此 Agent �
 - 接受 Share Sheet 的 Text 與 URL。
 - 有 Shortcut Input 時優先使用；沒有才 `Get Clipboard`。
 - config 不存在時進入一次性配對流程，不把配對 JSON 當作剪貼簿內容傳送。
+- `/status` 與 `/clipboard/text` 的文字位址必須先經過原生 `URL` action，再交給 `Get Contents of URL`，不得依賴 iOS 將 RTF 隱式轉為 URL。
 - Tailscale 未連線時呼叫 Connect；連線後只送一次 API request。
 - POST JSON 至 `/clipboard/text`，解析回應後顯示短通知。
 
 ### 8.2 `TailClip：取回`
 
 - 與傳送捷徑使用相同 config 與連線流程。
+- 所有 `If` action 只保留必要且已填值的條件列；不得存在會觸發「請選擇此動作中每個參數的值」的空白條件。
+- `/status` 與 `/clipboard/text` 的位址同樣先經過原生 `URL` action。
 - GET `/clipboard/text`。
 - `empty:true` 時顯示「電腦剪貼簿沒有文字」。
 - 有文字時使用 Copy to Clipboard 並開啟 Local Only，再顯示短通知。
@@ -392,11 +397,13 @@ Tailscale Serve 會在代理前移除 `/tailclip` mount prefix，因此 Agent �
 - 中文、英文、Emoji、多行、LF／CRLF 與 1 MiB 文字雙向傳送。
 - clipboard 被暫時鎖定時可重試並於 1 秒內結束。
 - 第一次安裝、再次雙擊、使用者登入自啟、重開機、token 輪替與解除安裝。
+- 通知區圖示持續存在；可由圖示開啟配對頁、切換登入後自啟及結束目前程序。
 - Tailscale 未安裝、未連線、HTTPS 未啟用、Serve path 衝突與 port 占用均有可理解指引。
 
 ### 10.3 iOS 26 實機
 
 - 兩支 shortcut 可安裝、重開與執行。
+- 所有 API request 使用明確 URL 型別，且所有 `If` 條件均已完整設定。
 - 一次 QR 配對，不輸入 endpoint 或 token。
 - 自動連線 Tailscale。
 - 剪貼簿與 Share Sheet 文字／網址傳送。
@@ -418,8 +425,8 @@ Windows alpha 只有在「下載後雙擊一次、至多一次必要 UAC、iPhon
 ## 11. 發布
 
 - 第一個 tag：`v0.1.0-alpha.1`。
-- 第一個可下載測試包為 `v0.1.0-alpha.1`；目前 Windows build candidate 為 `v0.1.0-alpha.3`。
-- Git 追蹤的 Windows 測試產物：`dist/TailClip-v0.1.0-alpha.3-windows-x64.zip` 及其 `.sha256`；舊版測試包保留供回歸比對。
+- 第一個可下載測試包為 `v0.1.0-alpha.1`；目前 Windows build candidate 為 `v0.1.0-alpha.4`。
+- Git 追蹤的 Windows 測試產物：`dist/TailClip-v0.1.0-alpha.4-windows-x64.zip` 及其 `.sha256`；舊版測試包保留供回歸比對。
 - GitHub Release artifacts：版本化 Windows x64 ZIP、Linux x86_64 tarball、兩支 signed Shortcuts 與 `SHA256SUMS`。
 - Windows ZIP 必須包含 `TailClip.exe`、`README-Windows.txt`、`Uninstall-TailClip.cmd`、`VERSION.txt`、兩支 signed Shortcuts 與包內 `SHA256SUMS.txt`。
 - release ZIP 解壓後只需雙擊 `TailClip.exe`；不得要求終端機、Go toolchain 或手動複製檔案。
