@@ -20,7 +20,7 @@
 - [x] 產生可直接下載測試的 Windows x64 ZIP；使用者不需 Go 或自行編譯。
 - [x] `v0.1.0-alpha.2` 改以 Win32 `RtlMoveMemory` 複製 clipboard buffer，排除 Windows vet 的 uintptr 轉指標警告，不增加第三方依賴。
 - [x] `v0.1.0-alpha.3` 修正本機設定頁 QR 被 `html/template` 改寫為 `#ZgotmplZ` 的問題，並讓 Windows 首次安裝以前景程序同步完成、重用既有 Serve、目前使用者權限優先及必要時 UAC fallback。
-- [x] `v0.1.0-alpha.4` 修正兩支 Shortcut 的空白條件與 RTF 隱式轉 URL 問題，並以原生 Win32 通知區圖示加入開啟設定頁、自啟切換與結束操作；安裝新版時會停止仍在執行的舊版 Agent 並啟動新版。已完成捷徑重開、重新匯出、簽署、Windows x64 交叉編譯與完整 ZIP 驗證。
+- [x] `v0.1.0-alpha.4` 修正兩支 Shortcut 的空白條件與 RTF 隱式轉 URL 問題，並以原生 Win32 通知區圖示加入開啟設定頁、自啟切換與結束操作；安裝新版時會停止仍在執行的舊版 Agent 並啟動新版。已完成捷徑重開、重新匯出、簽署、Windows x64 交叉編譯與完整 ZIP 驗證；Git 追蹤的同名 ZIP 必須與 GitHub Release 的乾淨 tag 建置完全一致，不得保留由前一 commit 的 dirty 工作樹產生、僅版本字串相同的候選包。
 - [ ] 在 Windows 11 x64 與實際 iPhone 完成首次安裝、QR 配對、雙向文字、Share Sheet、自啟、重開機與解除安裝驗收。
 - [ ] 在 Ubuntu 26.04 GNOME Wayland 與實際 iPhone 完成相同 E2E。
 - [ ] 實機驗收通過後，才把對應平台從 build candidate 改標為已支援。
