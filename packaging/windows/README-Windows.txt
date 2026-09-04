@@ -18,6 +18,8 @@ TailClip v0.1-alpha Windows 11 x64 測試版
 
 不需要安裝 Go，也不需要手動輸入網址或 token。
 
+若從 alpha.4 升級，執行新版 TailClip.exe 後請從配對頁重新安裝兩支捷徑，並在 iPhone 選擇取代同名捷徑；既有桌面設定會保留。
+
 重新開啟設定：
 
 按兩下右下角通知區的 TailClip 圖示，或在圖示的右鍵選單選擇「開啟連線與配對頁面」。結束 TailClip 後，可再次雙擊本資料夾的 TailClip.exe 啟動。

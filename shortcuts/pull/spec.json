@@ -29,6 +29,7 @@
     "設定只保存在 iCloud Drive/Shortcuts/TailClip/config.json",
     "配對資料必須先通過 /status 驗證才可保存",
     "所有 API 位址必須先經過原生 URL action，不得把 Text 或 RTF 直接交給 Get Contents of URL",
+    "所有 API JSON 回應必須先經過 Get Dictionary from Input，後續不得把 Text 直接交給 Get Dictionary Value",
     "所有 If action 只能保留必要且已填值的條件，不得含空白條件列",
     "Copy to Clipboard 必須啟用 Local Only",
     "空桌面剪貼簿不可覆寫 iPhone 現有剪貼簿",
@@ -99,7 +100,7 @@
     {
       "id": "a09",
       "label": "URL / Get Contents of URL",
-      "purpose": "先用 URL action 將 base_url/status 建成 URL 型別，再以 Bearer token 呼叫並確認配對真的可用。",
+      "purpose": "先用 URL action 將 base_url/status 建成 URL 型別，再以 Bearer token 呼叫配對狀態。",
       "params": {
         "method": "GET",
         "url": "<base_url>/status",
@@ -112,6 +113,14 @@
     },
     {
       "id": "a10",
+      "label": "Get Dictionary from Input",
+      "purpose": "將 /status 的 URL 內容明確解析為 Dictionary，避免 iOS 嘗試把 Text 隱式轉為 Dictionary。",
+      "params": {
+        "input": "Get Contents of URL output"
+      }
+    },
+    {
+      "id": "a11",
       "label": "If / Save File",
       "purpose": "只有 status.ok 為 true 才保存原始 pairing JSON；否則顯示指引並停止。",
       "params": {
@@ -121,7 +130,7 @@
       }
     },
     {
-      "id": "a11",
+      "id": "a12",
       "label": "Copy to Clipboard",
       "purpose": "配對成功後清除剪貼簿中的 token。",
       "params": {
@@ -130,19 +139,19 @@
       }
     },
     {
-      "id": "a12",
+      "id": "a13",
       "label": "Otherwise / Get Dictionary from File",
       "purpose": "已有設定時直接解析共用 config.json。",
       "params": {}
     },
     {
-      "id": "a13",
+      "id": "a14",
       "label": "Tailscale Connect",
       "purpose": "確保 Tailscale 已連線；已連線時保持原狀。",
       "params": {}
     },
     {
-      "id": "a14",
+      "id": "a15",
       "label": "URL / Get Contents of URL",
       "purpose": "先用 URL action 將 base_url/clipboard/text 建成 URL 型別，再以 Bearer token GET 桌面目前的純文字剪貼簿。",
       "params": {
@@ -156,7 +165,15 @@
       }
     },
     {
-      "id": "a15",
+      "id": "a16",
+      "label": "Get Dictionary from Input",
+      "purpose": "將 GET 回應的 URL 內容明確解析為 Dictionary，供 empty、ok、text 與 error 處理讀取。",
+      "params": {
+        "input": "Get Contents of URL output"
+      }
+    },
+    {
+      "id": "a17",
       "label": "If",
       "purpose": "API 回 empty:true 時只顯示提示，不改寫 iPhone 剪貼簿。",
       "params": {
@@ -165,7 +182,7 @@
       }
     },
     {
-      "id": "a16",
+      "id": "a18",
       "label": "If / Copy to Clipboard",
       "purpose": "成功且有 text 時，以 Local Only 寫入 iPhone 剪貼簿。",
       "params": {
@@ -176,7 +193,7 @@
       }
     },
     {
-      "id": "a17",
+      "id": "a19",
       "label": "Show Notification",
       "purpose": "顯示不需確認的短成功通知。",
       "params": {
@@ -216,6 +233,13 @@
         "api_error": "not_paired"
       },
       "expected": "顯示回到電腦重新掃描 QR，不覆寫 iPhone 剪貼簿"
+    },
+    {
+      "name": "API 回應被 Shortcuts 標示為文字",
+      "input": {
+        "api_response_text": "{\"ok\":true,\"empty\":false,\"text\":\"測試\"}"
+      },
+      "expected": "先由 Get Dictionary from Input 明確解析，再讀取欄位；不得出現文字轉辭典錯誤"
     }
   ],
   "side_effects": [

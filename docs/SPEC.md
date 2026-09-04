@@ -21,6 +21,7 @@
 - [x] `v0.1.0-alpha.2` 改以 Win32 `RtlMoveMemory` 複製 clipboard buffer，排除 Windows vet 的 uintptr 轉指標警告，不增加第三方依賴。
 - [x] `v0.1.0-alpha.3` 修正本機設定頁 QR 被 `html/template` 改寫為 `#ZgotmplZ` 的問題，並讓 Windows 首次安裝以前景程序同步完成、重用既有 Serve、目前使用者權限優先及必要時 UAC fallback。
 - [x] `v0.1.0-alpha.4` 修正兩支 Shortcut 的空白條件與 RTF 隱式轉 URL 問題，並以原生 Win32 通知區圖示加入開啟設定頁、自啟切換與結束操作；安裝新版時會停止仍在執行的舊版 Agent 並啟動新版。已完成捷徑重開、重新匯出、簽署、Windows x64 交叉編譯與完整 ZIP 驗證；Git 追蹤的同名 ZIP 必須與 GitHub Release 的乾淨 tag 建置完全一致，不得保留由前一 commit 的 dirty 工作樹產生、僅版本字串相同的候選包。
+- [x] `v0.1.0-alpha.5` 明確將四個 API 回應從 URL 內容解析為 Dictionary，再讀取欄位，排除 iOS 將 JSON 回應視為文字時的「文字無法轉換到辭典」錯誤；已完成捷徑重開、重新匯出、簽署、測試與 Windows x64 ZIP 解壓驗證。
 - [ ] 在 Windows 11 x64 與實際 iPhone 完成首次安裝、QR 配對、雙向文字、Share Sheet、自啟、重開機與解除安裝驗收。
 - [ ] 在 Ubuntu 26.04 GNOME Wayland 與實際 iPhone 完成相同 E2E。
 - [ ] 實機驗收通過後，才把對應平台從 build candidate 改標為已支援。
@@ -345,6 +346,7 @@ Tailscale Serve 會在代理前移除 `/tailclip` mount prefix，因此 Agent �
 - 有 Shortcut Input 時優先使用；沒有才 `Get Clipboard`。
 - config 不存在時進入一次性配對流程，不把配對 JSON 當作剪貼簿內容傳送。
 - `/status` 與 `/clipboard/text` 的文字位址必須先經過原生 `URL` action，再交給 `Get Contents of URL`，不得依賴 iOS 將 RTF 隱式轉為 URL。
+- 每次 `Get Contents of URL` 後必須明確使用 `Get Dictionary from Input` 解析 JSON；後續 `Get Dictionary Value` 只可讀取該 Dictionary 輸出，不得依賴 iOS 將文字隱式轉為辭典。
 - Tailscale 未連線時呼叫 Connect；連線後只送一次 API request。
 - POST JSON 至 `/clipboard/text`，解析回應後顯示短通知。
 
@@ -353,6 +355,7 @@ Tailscale Serve 會在代理前移除 `/tailclip` mount prefix，因此 Agent �
 - 與傳送捷徑使用相同 config 與連線流程。
 - 所有 `If` action 只保留必要且已填值的條件列；不得存在會觸發「請選擇此動作中每個參數的值」的空白條件。
 - `/status` 與 `/clipboard/text` 的位址同樣先經過原生 `URL` action。
+- `/status` 與 `/clipboard/text` 的回應同樣先經過 `Get Dictionary from Input`，再讀取 `ok`、`empty`、`text` 或 `error`。
 - GET `/clipboard/text`。
 - `empty:true` 時顯示「電腦剪貼簿沒有文字」。
 - 有文字時使用 Copy to Clipboard 並開啟 Local Only，再顯示短通知。
@@ -425,8 +428,8 @@ Windows alpha 只有在「下載後雙擊一次、至多一次必要 UAC、iPhon
 ## 11. 發布
 
 - 第一個 tag：`v0.1.0-alpha.1`。
-- 第一個可下載測試包為 `v0.1.0-alpha.1`；目前 Windows build candidate 為 `v0.1.0-alpha.4`。
-- Git 追蹤的 Windows 測試產物：`dist/TailClip-v0.1.0-alpha.4-windows-x64.zip` 及其 `.sha256`；舊版測試包保留供回歸比對。
+- 第一個可下載測試包為 `v0.1.0-alpha.1`；目前 Windows build candidate 為 `v0.1.0-alpha.5`。
+- Git 追蹤的 Windows 測試產物：`dist/TailClip-v0.1.0-alpha.5-windows-x64.zip` 及其 `.sha256`；舊版測試包保留供回歸比對。
 - GitHub Release artifacts：版本化 Windows x64 ZIP、Linux x86_64 tarball、兩支 signed Shortcuts 與 `SHA256SUMS`。
 - Windows ZIP 必須包含 `TailClip.exe`、`README-Windows.txt`、`Uninstall-TailClip.cmd`、`VERSION.txt`、兩支 signed Shortcuts 與包內 `SHA256SUMS.txt`。
 - release ZIP 解壓後只需雙擊 `TailClip.exe`；不得要求終端機、Go toolchain 或手動複製檔案。

@@ -14,14 +14,16 @@ TailClip 是一個以 Tailscale 私有網路連接 iPhone 與 Windows／Linux �
 
 下載並使用：
 
-1. 下載 [TailClip Windows x64 alpha 壓縮包](dist/TailClip-v0.1.0-alpha.4-windows-x64.zip)。
+1. 下載 [TailClip Windows x64 alpha 壓縮包](dist/TailClip-v0.1.0-alpha.5-windows-x64.zip)。
 2. 在檔案總管按「全部解壓縮」，不要直接在 ZIP 預覽中執行。
 3. 雙擊解壓後的 `TailClip.exe`。不需要安裝 Go 或其他 runtime。
 4. TailClip 會沿用本機已登入的 Tailscale tailnet 與既有 `/tailclip` Serve 設定，並常駐在 Windows 右下角通知區；只有需要新增 Serve 且目前使用者權限不足時才會要求一次 UAC。
 5. 用 iPhone 相機掃描 QR，依畫面安裝「TailClip：傳送」與「TailClip：取回」，再按一下複製配對資料。
 6. 執行「TailClip：取回」，或從分享選單執行「TailClip：傳送」，即可完成配對與首次測試。
 
-不需從原始碼編譯。正式標記版本也會附在 [GitHub Releases](https://github.com/kuanfu0430/tailclip/releases)；下載後可用 [SHA-256 檔](dist/TailClip-v0.1.0-alpha.4-windows-x64.zip.sha256) 核對完整性。
+不需從原始碼編譯。正式標記版本也會附在 [GitHub Releases](https://github.com/kuanfu0430/tailclip/releases)；下載後可用 [SHA-256 檔](dist/TailClip-v0.1.0-alpha.5-windows-x64.zip.sha256) 核對完整性。
+
+從 alpha.4 升級時，請解壓新版並再執行一次 `TailClip.exe`，接著從連線與配對頁重新安裝兩支捷徑；新版會保留既有桌面設定，iPhone 匯入時選擇取代同名捷徑即可。
 
 ## 日常使用
 

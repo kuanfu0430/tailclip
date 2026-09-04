@@ -34,6 +34,7 @@
     "設定只保存在 iCloud Drive/Shortcuts/TailClip/config.json",
     "配對資料必須先通過 /status 驗證才可保存",
     "所有 API 位址必須先經過原生 URL action，不得把 Text 或 RTF 直接交給 Get Contents of URL",
+    "所有 API JSON 回應必須先經過 Get Dictionary from Input，後續不得把 Text 直接交給 Get Dictionary Value",
     "所有 If action 只能保留必要且已填值的條件，不得含空白條件列",
     "傳送內容必須是非空 UTF-8 純文字且不超過 1048576 bytes",
     "成功通知不得要求使用者確認"
@@ -111,7 +112,7 @@
     {
       "id": "a09",
       "label": "URL / Get Contents of URL",
-      "purpose": "先用 URL action 將 base_url/status 建成 URL 型別，再以 Bearer token 呼叫並確認配對真的可用。",
+      "purpose": "先用 URL action 將 base_url/status 建成 URL 型別，再以 Bearer token 呼叫配對狀態。",
       "params": {
         "method": "GET",
         "url": "<base_url>/status",
@@ -124,6 +125,14 @@
     },
     {
       "id": "a10",
+      "label": "Get Dictionary from Input",
+      "purpose": "將 /status 的 URL 內容明確解析為 Dictionary，避免 iOS 嘗試把 Text 隱式轉為 Dictionary。",
+      "params": {
+        "input": "Get Contents of URL output"
+      }
+    },
+    {
+      "id": "a11",
       "label": "If",
       "purpose": "只有 /status 的 ok 為 true 才繼續，否則顯示重新配對指引並停止。",
       "params": {
@@ -132,7 +141,7 @@
       }
     },
     {
-      "id": "a11",
+      "id": "a12",
       "label": "Save File",
       "purpose": "將原始 pairing JSON 保存為兩支 TailClip 捷徑共用設定。",
       "params": {
@@ -143,7 +152,7 @@
       }
     },
     {
-      "id": "a12",
+      "id": "a13",
       "label": "Copy to Clipboard",
       "purpose": "配對成功後清除剪貼簿中的 token。",
       "params": {
@@ -152,13 +161,13 @@
       }
     },
     {
-      "id": "a13",
+      "id": "a14",
       "label": "Otherwise / Get Dictionary from File",
       "purpose": "已有設定時直接解析共用 config.json。",
       "params": {}
     },
     {
-      "id": "a14",
+      "id": "a15",
       "label": "If Shortcut Input",
       "purpose": "Share Sheet 有文字或 URL 時直接採用，省去預先複製；否則取得 iPhone 剪貼簿。",
       "params": {
@@ -167,7 +176,7 @@
       }
     },
     {
-      "id": "a15",
+      "id": "a16",
       "label": "If",
       "purpose": "空內容時顯示明確訊息並停止，不送出無效請求。",
       "params": {
@@ -176,13 +185,13 @@
       }
     },
     {
-      "id": "a16",
+      "id": "a17",
       "label": "Tailscale Connect",
       "purpose": "確保 Tailscale 已連線；已連線時保持原狀。",
       "params": {}
     },
     {
-      "id": "a17",
+      "id": "a18",
       "label": "URL / Get Contents of URL",
       "purpose": "先用 URL action 將 base_url/clipboard/text 建成 URL 型別，再把文字包成 JSON 並以 Bearer token 傳到桌面剪貼簿。",
       "params": {
@@ -200,7 +209,15 @@
       }
     },
     {
-      "id": "a18",
+      "id": "a19",
+      "label": "Get Dictionary from Input",
+      "purpose": "將 POST 回應的 URL 內容明確解析為 Dictionary，供成功與錯誤處理讀取。",
+      "params": {
+        "input": "Get Contents of URL output"
+      }
+    },
+    {
+      "id": "a20",
       "label": "If / Show Notification",
       "purpose": "成功顯示短通知；失敗顯示 API message 與重新配對指引。",
       "params": {
@@ -239,6 +256,13 @@
         "text": "test"
       },
       "expected": "顯示回到電腦重新掃描 QR，不覆寫既有設定"
+    },
+    {
+      "name": "API 回應被 Shortcuts 標示為文字",
+      "input": {
+        "api_response_text": "{\"ok\":true}"
+      },
+      "expected": "先由 Get Dictionary from Input 明確解析，再讀取 ok；不得出現文字轉辭典錯誤"
     }
   ],
   "side_effects": [
