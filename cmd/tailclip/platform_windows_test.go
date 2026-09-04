@@ -106,6 +106,47 @@ func TestWindowsInstallerCopiesThenCompletesSynchronously(t *testing.T) {
 	}
 }
 
+func TestWindowsInstallerRemovesUpgradeBackupAfterAgentTransition(t *testing.T) {
+	root := t.TempDir()
+	source := filepath.Join(root, "download", "TailClip.exe")
+	target := filepath.Join(root, "local", "TailClip", "TailClip.exe")
+	backup := target + ".old"
+	if err := os.MkdirAll(filepath.Dir(source), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(source, []byte("candidate"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+
+	var calls []string
+	installer := testWindowsInstaller(&calls, fakeWindowsTailscaleClient{configured: true})
+	installer.installPath = func() (string, error) { return target, nil }
+	installer.copyExecutable = func(_, target string) error {
+		calls = append(calls, "copy")
+		if err := os.MkdirAll(filepath.Dir(target), 0o700); err != nil {
+			return err
+		}
+		if err := os.WriteFile(target, []byte("candidate"), 0o700); err != nil {
+			return err
+		}
+		return os.WriteFile(backup, []byte("old-agent"), 0o700)
+	}
+	installer.ensureAgent = func(context.Context, string) error {
+		calls = append(calls, "agent")
+		if _, err := os.Stat(backup); err != nil {
+			return errors.New("舊執行檔在 Agent 切換前不應被清除")
+		}
+		return nil
+	}
+
+	if err := installer.run(context.Background(), source); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(backup); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("升級完成後仍殘留舊執行檔：%v", err)
+	}
+}
+
 func TestWindowsInstallerReusesExistingServe(t *testing.T) {
 	var calls []string
 	var status tailscale.Status

@@ -87,7 +87,12 @@ func (installer windowsInstaller) run(ctx context.Context, executable string) er
 	}
 
 	// 保留由檔案總管啟動的前景程序，避免安裝交給隱藏子程序後看似沒有反應。
-	return installer.finish(ctx, target)
+	finishErr := installer.finish(ctx, target)
+	cleanupErr := removeExecutableBackup(target)
+	if finishErr != nil {
+		return finishErr
+	}
+	return cleanupErr
 }
 
 func finishInstall(ctx context.Context, executable string) error {
@@ -230,6 +235,21 @@ func copyExecutable(source, target string) error {
 	}
 	_ = os.Remove(backup)
 	return nil
+}
+
+func removeExecutableBackup(target string) error {
+	backup := target + ".old"
+	deadline := time.Now().Add(3 * time.Second)
+	for {
+		err := os.Remove(backup)
+		if err == nil || errors.Is(err, os.ErrNotExist) {
+			return nil
+		}
+		if time.Now().After(deadline) {
+			return fmt.Errorf("新版 TailClip 已啟動，但無法移除舊執行檔 %s: %w", backup, err)
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
 }
 
 func sameFileContent(left, right string) (bool, error) {
