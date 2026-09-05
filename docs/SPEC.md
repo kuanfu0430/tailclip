@@ -1,7 +1,7 @@
 # TailClip 技術與產品規格
 
 - **文件版本：** 0.2
-- **日期：** 2026-09-04
+- **日期：** 2026-09-05
 - **專案狀態：** v0.1-alpha 開發中
 - **首版平台：** iOS 26、Windows 11 x64、Ubuntu 26.04 x86_64 GNOME Wayland
 - **傳輸：** HTTPS over Tailscale Serve
@@ -10,7 +10,7 @@
 
 ## 0. 實作進度
 
-最後更新：2026-09-04。
+最後更新：2026-09-05。
 
 - [x] 將規格收斂為 UTF-8 純文字 M1，完成共用設定、認證、API、限流、配對與無內容日誌。
 - [x] 完成 Windows Win32 clipboard backend、自我安裝、自啟、Serve 設定、HTTPS health 與本機 QR 頁。
@@ -24,6 +24,7 @@
 - [x] `v0.1.0-alpha.5` 明確將四個 API 回應從 URL 內容解析為 Dictionary，再讀取欄位，排除 iOS 將 JSON 回應視為文字時的「文字無法轉換到辭典」錯誤；已完成捷徑重開、重新匯出、簽署、測試與 Windows x64 ZIP 解壓驗證。
 - [x] `v0.1.0-alpha.5` 後續修正 Windows 升級清理時序：先完成舊版 Agent 停止與新版接手，再重試移除暫存的 `TailClip.exe.old`，避免執行中的舊映像仍被 Windows 鎖定而留下整份舊 EXE。
 - [x] `v0.1.0-alpha.6` 重建兩支捷徑：明確 UUID 資料流、設定驗證、固定 config.json 檔名及讀回、重新配對、空值與 API 錯誤處理；macOS 15.7.7 原生 Shortcuts + 真實 Go API 的 17 項隔離整合驗收全通過。
+- [x] 2026-09-05 使用者回報 alpha.6 iPhone ↔ Windows 核心捷徑傳輸實機測試成功，確認本次修復可用；未將此回報擴張為以下完整平台驗收。
 - [ ] 在 Windows 11 x64 與實際 iPhone 完成首次安裝、QR 配對、雙向文字、Share Sheet、自啟、重開機與解除安裝驗收。
 - [ ] 在 Ubuntu 26.04 GNOME Wayland 與實際 iPhone 完成相同 E2E。
 - [ ] 實機驗收通過後，才把對應平台從 build candidate 改標為已支援。
@@ -412,6 +413,8 @@ Tailscale Serve 會在代理前移除 `/tailclip` mount prefix，因此 Agent �
 
 ### 10.2 Windows 實機
 
+2026-09-05，使用者在收到 alpha.6 配對與雙向傳輸操作步驟後回覆「我測試成功了」。據此記錄 iPhone ↔ Windows 核心傳輸成功；下列完整矩陣仍待逐項確認，包括自啟、重開機、解除安裝及邊界條件。這是使用者實機回報，與 10.1 的 agent 原生測試分開記錄。
+
 - 中文、英文、Emoji、多行、LF／CRLF 與 1 MiB 文字雙向傳送。
 - clipboard 被暫時鎖定時可重試並於 1 秒內結束。
 - 第一次安裝、再次雙擊、使用者登入自啟、重開機、token 輪替與解除安裝。
@@ -419,6 +422,8 @@ Tailscale Serve 會在代理前移除 `/tailclip` mount prefix，因此 Agent �
 - Tailscale 未安裝、未連線、HTTPS 未啟用、Serve path 衝突與 port 占用均有可理解指引。
 
 ### 10.3 iOS 26 實機
+
+核心捷徑傳輸的使用者成功回報同 10.2；未據此宣稱所有分享類型、離線恢復或 iOS 背景行為均已測試。
 
 - 兩支 shortcut 可安裝、重開與執行。
 - 所有 API request 使用明確 URL 型別，且所有 `If` 條件均已完整設定。

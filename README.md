@@ -44,7 +44,7 @@ TailClip 是一個以 Tailscale 私有網路連接 iPhone 與 Windows／Linux �
 - Windows 11 x64。
 - Ubuntu 26.04 x86_64 GNOME Wayland；Linux 測試包請由 [GitHub Releases](https://github.com/kuanfu0430/tailclip/releases) 下載。
 
-alpha.6 已通過 Mac 原生捷徑執行器連接 Go API 的 17 項整合驗收，包括配對保存、再次執行、分享／剪貼簿、Unicode、1 MiB 與錯誤分支；iPhone、Windows 原生剪貼簿及跨裝置 Tailscale 仍待實機驗收。
+alpha.6 已通過 Mac 原生捷徑執行器連接 Go API 的 17 項整合驗收，包括配對保存、再次執行、分享／剪貼簿、Unicode、1 MiB 與錯誤分支。2026-09-05 使用者亦回報 iPhone ↔ Windows 核心傳輸實機測試成功；自啟、重開機、解除安裝及完整邊界案例仍未逐項驗收。
 
 尚未支援：圖片、HTML、檔案、Taildrop、X11、多桌面選擇、原生 iOS App、自動同步與自動更新。
 
