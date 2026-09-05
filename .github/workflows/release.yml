@@ -22,6 +22,7 @@ jobs:
           test -z "$(gofmt -l .)"
           go vet ./...
           go test -race ./...
+          python3 -m unittest discover -s shortcuts/tests -v
           test -s shortcuts/dist/TailClip-Send.shortcut
           test -s shortcuts/dist/TailClip-Pull.shortcut
       - name: 建置與封裝
@@ -30,11 +31,11 @@ jobs:
         run: |
           mkdir -p release-output windows-package linux-package
           GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags="-s -w -H=windowsgui -X github.com/kuanfu0430/tailclip/internal/buildinfo.Version=${VERSION}" -o windows-package/TailClip.exe ./cmd/tailclip
-          cp packaging/windows/README-Windows.txt packaging/windows/Uninstall-TailClip.cmd windows-package/
+          cp packaging/windows/README-Windows.txt packaging/windows/Start-TailClip.cmd packaging/windows/Uninstall-TailClip.cmd windows-package/
           cp shortcuts/dist/TailClip-Send.shortcut shortcuts/dist/TailClip-Pull.shortcut windows-package/
           printf '%s\n' "${VERSION}" > windows-package/VERSION.txt
           cd windows-package
-          sha256sum TailClip.exe README-Windows.txt Uninstall-TailClip.cmd VERSION.txt TailClip-Send.shortcut TailClip-Pull.shortcut > SHA256SUMS.txt
+          sha256sum TailClip.exe README-Windows.txt Start-TailClip.cmd Uninstall-TailClip.cmd VERSION.txt TailClip-Send.shortcut TailClip-Pull.shortcut > SHA256SUMS.txt
           zip -9 -r "../release-output/TailClip-${VERSION}-windows-x64.zip" .
           cd ..
           GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags="-s -w -X github.com/kuanfu0430/tailclip/internal/buildinfo.Version=${VERSION}" -o linux-package/tailclip ./cmd/tailclip
@@ -53,6 +54,7 @@ jobs:
           unzip -q "release-output/TailClip-${VERSION}-windows-x64.zip" -d package-check
           test -s package-check/TailClip.exe
           test -s package-check/README-Windows.txt
+          test -s package-check/Start-TailClip.cmd
           test -s package-check/Uninstall-TailClip.cmd
           test -s package-check/VERSION.txt
           test -s package-check/TailClip-Send.shortcut

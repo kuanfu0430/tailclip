@@ -26,6 +26,8 @@ jobs:
         run: test -z "$(gofmt -l .)"
       - name: Vet
         run: go vet ./...
+      - name: 捷徑來源與成品一致性
+        run: python -m unittest discover -s shortcuts/tests -v
       - name: 單元與整合測試
         run: go test ./...
       - name: Race 測試

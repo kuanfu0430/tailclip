@@ -14,22 +14,25 @@ TailClip 是一個以 Tailscale 私有網路連接 iPhone 與 Windows／Linux �
 
 下載並使用：
 
-1. 下載 [TailClip Windows x64 alpha 壓縮包](dist/TailClip-v0.1.0-alpha.5-windows-x64.zip)。
+1. 下載 [TailClip Windows x64 alpha 壓縮包](dist/TailClip-v0.1.0-alpha.6-windows-x64.zip)。
 2. 在檔案總管按「全部解壓縮」，不要直接在 ZIP 預覽中執行。
-3. 雙擊解壓後的 `TailClip.exe`。不需要安裝 Go 或其他 runtime。
+3. 雙擊解壓後的 `TailClip.exe`。不需要安裝 Go 或其他 runtime；亦可雙擊同資料夾的 `Start-TailClip.cmd` 一鍵啟動服務與配對頁。
 4. TailClip 會沿用本機已登入的 Tailscale tailnet 與既有 `/tailclip` Serve 設定，並常駐在 Windows 右下角通知區；只有需要新增 Serve 且目前使用者權限不足時才會要求一次 UAC。
 5. 用 iPhone 相機掃描 QR，依畫面安裝「TailClip：傳送」與「TailClip：取回」，再按一下複製配對資料。
-6. 執行「TailClip：取回」，或從分享選單執行「TailClip：傳送」，即可完成配對與首次測試。
+6. 執行「TailClip：取回」完成配對並取得電腦文字。首次使用出現檔案或網路權限時允許存取。若先執行「傳送」，這一次只完成配對；請再複製要傳送的文字並執行一次。
 
-不需從原始碼編譯。正式標記版本也會附在 [GitHub Releases](https://github.com/kuanfu0430/tailclip/releases)；下載後可用 [SHA-256 檔](dist/TailClip-v0.1.0-alpha.5-windows-x64.zip.sha256) 核對完整性。
+不需從原始碼編譯。正式標記版本也會附在 [GitHub Releases](https://github.com/kuanfu0430/tailclip/releases)；下載後可用 [SHA-256 檔](dist/TailClip-v0.1.0-alpha.6-windows-x64.zip.sha256) 核對完整性。
 
-從 alpha.4 升級時，請解壓新版並再執行一次 `TailClip.exe`，接著從連線與配對頁重新安裝兩支捷徑；新版會保留既有桌面設定，iPhone 匯入時選擇取代同名捷徑即可。
+從 alpha.5 或更舊版本升級時，請解壓新版並執行 `TailClip.exe`，從配對頁重新安裝兩支捷徑、複製配對資料，再執行「TailClip：取回」。同名時選擇取代；之後使用中文名稱的新版，避免誤開 `TailClip-Send 2`、`TailClip-Pull 4` 等舊副本。桌面既有設定會保留。
+
+若曾遇到「無效的 URL：/status」，請依上述步驟重新配對，不必手改捷徑變數或刪除設定檔。重新配對時，新複製的配對資料會優先驗證，成功後才取代舊設定。
 
 ## 日常使用
 
 - **傳送：** 在 iPhone 複製文字後執行「TailClip：傳送」，或直接從 App 的分享選單執行它；之後可在電腦貼上。
 - **取回：** 在 iPhone 執行「TailClip：取回」；之後可貼上電腦目前的文字剪貼簿。
-- 捷徑會在需要時自動連線 Tailscale，不顯示方向或裝置選單。
+- 捷徑會呼叫 Tailscale 連線並短暫等待，不顯示方向或裝置選單。連線仍失敗時，確認兩端 Tailscale 與電腦 TailClip 已啟動後再執行。
+- 電腦沒有文字時，取回只會通知，保留手機原有剪貼簿。
 - **Windows 通知區：** 按兩下 TailClip 圖示會開啟連線與配對頁面；按右鍵可開啟頁面、切換「登入 Windows 後自動啟動」，或結束 TailClip。這個選項只控制登入後啟動程式，不會修改 Windows 帳號的登入方式。
 
 結束後要重新啟動時，再次雙擊壓縮包內的 `TailClip.exe`；Agent 已在執行時，雙擊只會開啟狀態與配對頁。需要移除時，雙擊同一資料夾內的 `Uninstall-TailClip.cmd`，再於確認畫面選擇同意；Tailscale 本身不會被移除。
@@ -40,6 +43,8 @@ TailClip 是一個以 Tailscale 私有網路連接 iPhone 與 Windows／Linux �
 - iOS 26 Shortcuts 與 Share Sheet 純文字／網址；網址視為純文字。
 - Windows 11 x64。
 - Ubuntu 26.04 x86_64 GNOME Wayland；Linux 測試包請由 [GitHub Releases](https://github.com/kuanfu0430/tailclip/releases) 下載。
+
+alpha.6 已通過 Mac 原生捷徑執行器連接 Go API 的 17 項整合驗收，包括配對保存、再次執行、分享／剪貼簿、Unicode、1 MiB 與錯誤分支；iPhone、Windows 原生剪貼簿及跨裝置 Tailscale 仍待實機驗收。
 
 尚未支援：圖片、HTML、檔案、Taildrop、X11、多桌面選擇、原生 iOS App、自動同步與自動更新。
 

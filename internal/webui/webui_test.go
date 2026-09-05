@@ -1,6 +1,7 @@
 package webui
 
 import (
+	"mime"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -57,10 +58,19 @@ func TestExpiredAndShortcutDownload(t *testing.T) {
 		t.Fatalf("未知 nonce 回應不正確: %d %s", recorder.Code, recorder.Body.String())
 	}
 
-	recorder = httptest.NewRecorder()
-	handler.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/setup/"+session.Nonce+"/TailClip-Send.shortcut", nil))
-	if recorder.Code != http.StatusOK || recorder.Body.String() != "send" || recorder.Header().Get("Cache-Control") == "" {
-		t.Fatalf("捷徑下載不正確: %d %q", recorder.Code, recorder.Body.String())
+	for _, test := range []struct{ route, filename, body string }{
+		{"TailClip-Send.shortcut", "TailClip：傳送.shortcut", "send"},
+		{"TailClip-Pull.shortcut", "TailClip：取回.shortcut", "pull"},
+	} {
+		recorder = httptest.NewRecorder()
+		handler.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/setup/"+session.Nonce+"/"+test.route, nil))
+		if recorder.Code != http.StatusOK || recorder.Body.String() != test.body || recorder.Header().Get("Cache-Control") == "" {
+			t.Fatalf("捷徑下載不正確: %d %q", recorder.Code, recorder.Body.String())
+		}
+		mediaType, params, err := mime.ParseMediaType(recorder.Header().Get("Content-Disposition"))
+		if err != nil || mediaType != "attachment" || params["filename"] != test.filename {
+			t.Fatalf("匯入名稱必須與配對頁一致: %v %q", err, recorder.Header().Get("Content-Disposition"))
+		}
 	}
 }
 

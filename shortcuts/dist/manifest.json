@@ -1,0 +1,12 @@
+{
+  "TailClip-Send.shortcut": {
+    "source_sha256": "31ffa80f530cd44953d863f0f2903dda577d745c695dc76f76bd75d51aade697",
+    "artifact_sha256": "332f77dfc30aef362b5edf88583fd93954f9d7c6e6ef7eda7f847d08165748e9",
+    "actions": 104
+  },
+  "TailClip-Pull.shortcut": {
+    "source_sha256": "fff41a836c9d861d98ddf664cc4ac9987c5a1da6600ad89e3e56a13bcf1eb85d",
+    "artifact_sha256": "5680d8d28583152f2b928374230cc8a36ec68c2a737ac9c95cd93a4b37a75040",
+    "actions": 93
+  }
+}

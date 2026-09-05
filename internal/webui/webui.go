@@ -4,8 +4,8 @@ import (
 	"encoding/base64"
 	"fmt"
 	"html/template"
+	"mime"
 	"net/http"
-	"path"
 	"strings"
 	"time"
 
@@ -72,11 +72,14 @@ func (h *PublicHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func (h *PublicHandler) shortcut(w http.ResponseWriter, name string) {
 	var content []byte
+	var filename string
 	switch name {
 	case "TailClip-Send.shortcut":
 		content = h.assets.Send
+		filename = "TailClip：傳送.shortcut"
 	case "TailClip-Pull.shortcut":
 		content = h.assets.Pull
+		filename = "TailClip：取回.shortcut"
 	default:
 		h.expired(w)
 		return
@@ -86,7 +89,7 @@ func (h *PublicHandler) shortcut(w http.ResponseWriter, name string) {
 		return
 	}
 	w.Header().Set("Content-Type", "application/octet-stream")
-	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename=%q`, path.Base(name)))
+	w.Header().Set("Content-Disposition", mime.FormatMediaType("attachment", map[string]string{"filename": filename}))
 	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(content)))
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write(content)
@@ -155,7 +158,7 @@ var pairingPage = template.Must(template.New("pairing").Parse(pageShellStart + `
     <div class="brand"><span class="mark">T</span><span>TailClip</span></div>
     <p class="eyebrow">與 {{.DeviceName}} 配對</p>
     <h1>跟著做，就設定完成。</h1>
-    <p class="lead">依序安裝兩支捷徑並複製配對資料；接著執行「取回」，或從分享選單執行「傳送」。之後不必再輸入網址或憑證。</p>
+    <p class="lead">依序安裝兩支捷徑並複製配對資料，再執行「TailClip：取回」完成配對並取得電腦文字。若先執行「傳送」，本次只完成配對；請再複製要傳送的文字並執行一次。</p>
     {{if .AssetsReady}}
     <div class="stack">
       <a class="button secondary" href="{{.Nonce}}/TailClip-Send.shortcut">① 安裝「TailClip：傳送」</a>
@@ -166,7 +169,7 @@ var pairingPage = template.Must(template.New("pairing").Parse(pageShellStart + `
     {{else}}
     <div class="notice">這個開發版本尚未內含可安裝的捷徑；Agent 配對頁本身已可測試。</div>
     {{end}}
-    <p class="foot">此頁於 {{.ExpiresAt}} 失效。配對資料只會在你按下按鈕後進入剪貼簿。</p>
+    <p class="foot">舊版使用者請安裝兩支新版捷徑；同名時選擇取代。之後請執行中文名稱的新版，避免誤開 TailClip-Send 2 等舊副本。此頁於 {{.ExpiresAt}} 失效。</p>
   </section>
 </main>
 <span id="payload" hidden>{{.PairingData}}</span>

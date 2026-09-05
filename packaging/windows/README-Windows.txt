@@ -18,7 +18,9 @@ TailClip v0.1-alpha Windows 11 x64 測試版
 
 不需要安裝 Go，也不需要手動輸入網址或 token。
 
-若從 alpha.4 升級，執行新版 TailClip.exe 後請從配對頁重新安裝兩支捷徑，並在 iPhone 選擇取代同名捷徑；既有桌面設定會保留。
+若從 alpha.5 或更舊版升級，執行新版 TailClip.exe 後請從配對頁安裝兩支新版、複製配對資料並執行「TailClip：取回」。同名時選擇取代；日後請使用中文名稱的新版，避免誤開 TailClip-Send 2 等舊副本。既有桌面設定會保留。
+
+第一次若先執行「TailClip：傳送」，只會完成配對；再複製要傳送的文字並執行一次。遇到「無效的 URL：/status」可按以上方式重新配對，不需手動改捷徑或刪除設定檔。
 
 重新開啟設定：
 
@@ -39,3 +41,5 @@ TailClip v0.1-alpha Windows 11 x64 測試版
 - 此版本尚未購買 Windows code signing，SmartScreen 可能顯示警告。
 - TailClip-Send.shortcut 與 TailClip-Pull.shortcut 是已簽署的備援檔；正常情況由 QR 配對頁安裝，不需手動處理。
 - SHA256SUMS.txt 可用來核對本資料夾內的執行檔與捷徑。
+
+Start-TailClip.cmd 是一鍵啟動入口，會開啟 TailClip 服務與配對頁；直接雙擊 TailClip.exe 亦可。啟動腳本採 ASCII 編碼，避免中文系統字碼造成解析失敗。

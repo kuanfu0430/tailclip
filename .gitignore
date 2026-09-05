@@ -16,6 +16,7 @@ Thumbs.db
 *.log
 coverage.out
 *.test
+__pycache__/
 TailClip.exe
 /tailclip
 

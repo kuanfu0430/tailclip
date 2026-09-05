@@ -23,6 +23,7 @@
 - [x] `v0.1.0-alpha.4` 修正兩支 Shortcut 的空白條件與 RTF 隱式轉 URL 問題，並以原生 Win32 通知區圖示加入開啟設定頁、自啟切換與結束操作；安裝新版時會停止仍在執行的舊版 Agent 並啟動新版。已完成捷徑重開、重新匯出、簽署、Windows x64 交叉編譯與完整 ZIP 驗證；Git 追蹤的同名 ZIP 必須與 GitHub Release 的乾淨 tag 建置完全一致，不得保留由前一 commit 的 dirty 工作樹產生、僅版本字串相同的候選包。
 - [x] `v0.1.0-alpha.5` 明確將四個 API 回應從 URL 內容解析為 Dictionary，再讀取欄位，排除 iOS 將 JSON 回應視為文字時的「文字無法轉換到辭典」錯誤；已完成捷徑重開、重新匯出、簽署、測試與 Windows x64 ZIP 解壓驗證。
 - [x] `v0.1.0-alpha.5` 後續修正 Windows 升級清理時序：先完成舊版 Agent 停止與新版接手，再重試移除暫存的 `TailClip.exe.old`，避免執行中的舊映像仍被 Windows 鎖定而留下整份舊 EXE。
+- [x] `v0.1.0-alpha.6` 重建兩支捷徑：明確 UUID 資料流、設定驗證、固定 config.json 檔名及讀回、重新配對、空值與 API 錯誤處理；macOS 15.7.7 原生 Shortcuts + 真實 Go API 的 17 項隔離整合驗收全通過。
 - [ ] 在 Windows 11 x64 與實際 iPhone 完成首次安裝、QR 配對、雙向文字、Share Sheet、自啟、重開機與解除安裝驗收。
 - [ ] 在 Ubuntu 26.04 GNOME Wayland 與實際 iPhone 完成相同 E2E。
 - [ ] 實機驗收通過後，才把對應平台從 build candidate 改標為已支援。
@@ -82,7 +83,7 @@ TailClip 讓使用者在 iPhone 與 Windows／Linux 電腦之間手動傳送目�
 5. 只有需要新增 Serve path 時才顯示 Certificate Transparency 說明；先以目前使用者權限設定，權限不足才要求一次 UAC，且不得重設其他 Serve 設定。
 6. TailClip 驗證公開 HTTPS health endpoint。
 7. 本機設定頁顯示可實際載入與掃描的限時 QR。
-8. iPhone 掃 QR，安裝兩支捷徑並點一下複製配對資料，再執行「取回」或從 Share Sheet 執行「傳送」完成配對。
+8. iPhone 掃 QR，安裝兩支捷徑並點一下複製配對資料，再執行「取回」完成配對並取得電腦文字。先執行「傳送」時只完成配對，需再複製內容後執行一次。
 
 TailClip 不建立新的 tailnet、也不替兩台裝置執行 Tailscale 帳號配對；Windows 與 iPhone 必須已登入同一個 tailnet。安裝時不要求指定 peer 當下在線，避免 iPhone 暫時離線時阻擋桌面端設定。
 
@@ -99,8 +100,8 @@ TailClip 不建立新的 tailnet、也不替兩台裝置執行 Tailscale 帳號�
 
 ### 3.3 每日傳送
 
-1. 「TailClip：傳送」先讀 Share Sheet input；沒有 input 才讀 iOS 剪貼簿。
-2. 若 Tailscale 未連線，捷徑自動呼叫 Connect 並等待連線。
+1. 「TailClip：傳送」先驗證共用設定；一般傳送以 Share Sheet input 為內容來源，沒有 input 才使用 iOS 剪貼簿。若剪貼簿是新配對資料則優先進行配對，本次不傳送。
+2. 捷徑呼叫 Tailscale Connect 並等待兩秒；已連線時保持連線。
 3. 捷徑送出 `POST /v1/clipboard/text`。
 4. Agent 驗證 token、內容類型與大小後寫入桌面剪貼簿。
 5. 捷徑顯示不需確認的短通知：「已傳到〈裝置名〉」。
@@ -345,11 +346,11 @@ Tailscale Serve 會在代理前移除 `/tailclip` mount prefix，因此 Agent �
 ### 8.1 `TailClip：傳送`
 
 - 接受 Share Sheet 的 Text 與 URL。
-- 有 Shortcut Input 時優先使用；沒有才 `Get Clipboard`。
-- config 不存在時進入一次性配對流程，不把配對 JSON 當作剪貼簿內容傳送。
+- 傳送內容以 Shortcut Input 優先，沒有才使用本次開始時取得的剪貼簿文字；兩種來源都拒絕空字串與配對 JSON。
+- config 不存在時提示複製配對資料；每次執行有新配對 JSON 時優先配對，即使舊設定損壞也可修復。不把配對 JSON 當作剪貼簿內容傳送。
 - `/status` 與 `/clipboard/text` 的文字位址必須先經過原生 `URL` action，再交給 `Get Contents of URL`，不得依賴 iOS 將 RTF 隱式轉為 URL。
 - 每次 `Get Contents of URL` 後必須明確使用 `Get Dictionary from Input` 解析 JSON；後續 `Get Dictionary Value` 只可讀取該 Dictionary 輸出，不得依賴 iOS 將文字隱式轉為辭典。
-- Tailscale 未連線時呼叫 Connect；連線後只送一次 API request。
+- 呼叫 Tailscale Connect 並等待兩秒；日常傳輸只送一次 API request，新配對另需一次 /status 驗證。
 - POST JSON 至 `/clipboard/text`，解析回應後顯示短通知。
 
 ### 8.2 `TailClip：取回`
@@ -357,18 +358,28 @@ Tailscale Serve 會在代理前移除 `/tailclip` mount prefix，因此 Agent �
 - 與傳送捷徑使用相同 config 與連線流程。
 - 所有 `If` action 只保留必要且已填值的條件列；不得存在會觸發「請選擇此動作中每個參數的值」的空白條件。
 - `/status` 與 `/clipboard/text` 的位址同樣先經過原生 `URL` action。
-- `/status` 與 `/clipboard/text` 的回應同樣先經過 `Get Dictionary from Input`，再讀取 `ok`、`empty`、`text` 或 `error`。
+- `/status` 與 `/clipboard/text` 的回應同樣先經過 `Get Dictionary from Input`，再讀取 `ok`、`text` 或 `error`。
 - GET `/clipboard/text`。
-- `empty:true` 時顯示「電腦剪貼簿沒有文字」。
+- API 的 `empty:true` 對應空 `text`；捷徑以 text 是否有內容決定，空值顯示「電腦剪貼簿沒有文字」，不清空手機剪貼簿。
 - 有文字時使用 Copy to Clipboard 並開啟 Local Only，再顯示短通知。
 
 ### 8.3 建立與交付
 
 - 每支捷徑先有 JSON build spec，並通過規格 validator。
 - 只使用 iOS／Tailscale 原生 actions，不使用 Run Shell Script 或 Run AppleScript。
-- 透過 macOS Shortcuts 編輯器建立，完成重開、CLI 與 iPhone 實測。
-- export 後以 `shortcuts sign --mode anyone` 簽署。
+- 以版本控制的 Python builder 產生原生 action plist，再匯入 macOS Shortcuts 重開及 CLI 實測；iPhone／Windows 實機驗收另行記錄，不以簽署或檔案大小代替執行驗證。
+- builder 輸出經 `shortcuts sign --mode anyone` 簽署；解封後比對所有 actions 與參數，僅忽略簽署器移除的 WFWorkflowName 與重寫的 WFWorkflowClientVersion。manifest 記錄來源與成品 SHA-256，CI 拒絕 builder 與成品不一致。
 - 簽署前 artifact 不得含真實 endpoint、token 或個人資料。
+
+### 8.4 alpha.6 捷徑重建決策
+
+- 舊成品與 build spec 不一致：token 取值未綁定辭典、Save File 缺少目的檔名、未驗證設定欄位，取回也未處理錯誤與空值。`/status` 錯誤表示前綴已為空，須在建 URL 之前攔截，而非繼續增加型別轉換。
+- 合併配對與讀檔後的解析流程；所有取值明確綁定同一辭典，網址與認證直接引用動作輸出，避免跨分支命名變數漂移。
+- 新複製的配對 JSON 優先於既有檔案，通過格式與 `/status` 驗證後才覆寫 `Shortcuts/TailClip/config.json`，因此可修復壞設定或更新已輪替的 token。
+- 傳送捷徑完成配對後停止，提示使用者複製要傳送的文字再執行；配對資料不得作為 payload。取回可在配對後立即取得電腦文字。
+- 原生驗收確認 Save File 會依內容型別改副檔名，須先 Set Name(config.json, WFDontIncludeFileExtension=false)，儲存後讀回存在才清除配對剪貼簿。Text(空字串) 仍可包含一個項目，傳送改用非空字串正則符合結果判斷，避免空內容走到 HTTP。
+- 配對頁以 UTF-8 Content-Disposition 檔名交付中文名稱，避免使用者繼續誤開 TailClip-Send 2 等舊副本。
+- 成功前均檢查 API `ok`；空剪貼簿或錯誤不改寫手機文字。原生網路動作的連線／TLS 錯誤由 Shortcuts 呈現，不宣稱有該動作未提供的自訂 timeout 或 try/catch。
 
 ## 9. 安全與隱私
 
@@ -395,7 +406,9 @@ Tailscale Serve 會在代理前移除 `/tailclip` mount prefix，因此 Agent �
 - clipboard：fake backend、並行序列化、平台錯誤映射。
 - pairing：nonce entropy、過期、no-store headers、未知 nonce、輸出無秘密日誌。
 - Serve：既有 root mapping 保留、同 path 衝突、idempotent setup、絕不 reset。
-- CI：format、vet、race tests、Windows x64 build、Linux x86_64 build。
+- CI：format、vet、race tests、Windows x64 build、Linux x86_64 build、捷徑資料流與成品來源雜湊。
+- 2026-09-05 macOS 原生整合：17/17 通過。涵蓋首次配對保存／讀回、分享 Unicode/CRLF/跳脫、剪貼簿 fallback、網址、取回、雙向空值、配對憑證拒送、1 MiB／超量、四種無效設定、失效 token、失敗配對保留設定及損壞設定修復。
+- 原生測試從同一 builder 產生 QA 捷徑，只替換設定路徑、loopback URL 規則、移除 iOS ConnectIntent、將通知換為原生 Stop and Output；HTTP、檔案、JSON 與剪貼簿動作保持原生。testhost 使用真實 API 與記憶體剪貼簿，port 由 OS 在 127.0.0.1 分配。這些結果不代表 iPhone、Windows 剪貼簿或 Tailscale 跨裝置連線已驗收。
 
 ### 10.2 Windows 實機
 
@@ -430,10 +443,11 @@ Windows alpha 只有在「下載後雙擊一次、至多一次必要 UAC、iPhon
 ## 11. 發布
 
 - 第一個 tag：`v0.1.0-alpha.1`。
-- 第一個可下載測試包為 `v0.1.0-alpha.1`；目前 Windows build candidate 為 `v0.1.0-alpha.5`。
-- Git 追蹤的 Windows 測試產物：`dist/TailClip-v0.1.0-alpha.5-windows-x64.zip` 及其 `.sha256`；舊版測試包保留供回歸比對。
+- 第一個可下載測試包為 `v0.1.0-alpha.1`；目前 Windows build candidate 為 `v0.1.0-alpha.6`（本機建置，未發布 GitHub）。
+- Git 追蹤的 Windows 測試產物：`dist/TailClip-v0.1.0-alpha.6-windows-x64.zip` 及其 `.sha256`；舊版測試包保留供回歸比對。
 - GitHub Release artifacts：版本化 Windows x64 ZIP、Linux x86_64 tarball、兩支 signed Shortcuts 與 `SHA256SUMS`。
-- Windows ZIP 必須包含 `TailClip.exe`、`README-Windows.txt`、`Uninstall-TailClip.cmd`、`VERSION.txt`、兩支 signed Shortcuts 與包內 `SHA256SUMS.txt`。
+- Windows ZIP 必須包含 `TailClip.exe`、`README-Windows.txt`、`Start-TailClip.cmd`、`Uninstall-TailClip.cmd`、`VERSION.txt`、兩支 signed Shortcuts 與包內 `SHA256SUMS.txt`。
+- `Start-TailClip.cmd` 使用 ASCII／CRLF 與完整引號路徑啟動 TailClip，供一鍵啟動服務與配對頁；原有 EXE 直接啟動入口保留。
 - release ZIP 解壓後只需雙擊 `TailClip.exe`；不得要求終端機、Go toolchain 或手動複製檔案。
 - CI 不保存或產生真實配對 token。
 - 本版沒有自動更新；升級前保留相容的 `config.json`，未知 config version 安全停止並提示重新設定。
