@@ -407,7 +407,7 @@ Tailscale Serve 會在代理前移除 `/tailclip` mount prefix，因此 Agent �
 - pairing：nonce entropy、過期、no-store headers、未知 nonce、輸出無秘密日誌。
 - Serve：既有 root mapping 保留、同 path 衝突、idempotent setup、絕不 reset。
 - CI：format、vet、race tests、Windows x64 build、Linux x86_64 build、捷徑資料流與成品來源雜湊。
-- 2026-09-05 macOS 原生整合：17/17 通過。涵蓋首次配對保存／讀回、分享 Unicode/CRLF/跳脫、剪貼簿 fallback、網址、取回、雙向空值、配對憑證拒送、1 MiB／超量、四種無效設定、失效 token、失敗配對保留設定及損壞設定修復。
+- 2026-09-05 macOS 原生整合：17/17 通過。正式簽署成品已在 Mac 以中文名稱匯入並重開；QA 副本與設定已清理，原始剪貼簿已還原。涵蓋首次配對保存／讀回、分享 Unicode/CRLF/跳脫、剪貼簿 fallback、網址、取回、雙向空值、配對憑證拒送、1 MiB／超量、四種無效設定、失效 token、失敗配對保留設定及損壞設定修復。
 - 原生測試從同一 builder 產生 QA 捷徑，只替換設定路徑、loopback URL 規則、移除 iOS ConnectIntent、將通知換為原生 Stop and Output；HTTP、檔案、JSON 與剪貼簿動作保持原生。testhost 使用真實 API 與記憶體剪貼簿，port 由 OS 在 127.0.0.1 分配。這些結果不代表 iPhone、Windows 剪貼簿或 Tailscale 跨裝置連線已驗收。
 
 ### 10.2 Windows 實機
@@ -444,6 +444,7 @@ Windows alpha 只有在「下載後雙擊一次、至多一次必要 UAC、iPhon
 
 - 第一個 tag：`v0.1.0-alpha.1`。
 - 第一個可下載測試包為 `v0.1.0-alpha.1`；目前 Windows build candidate 為 `v0.1.0-alpha.6`（本機建置，未發布 GitHub）。
+- alpha.6 本機 ZIP 由乾淨來源 commit `e644810` 建置，EXE 的 `vcs.modified=false`；Windows x64 GUI PE、兩支內嵌捷徑、ZIP 每檔 SHA-256 與 ASCII／CRLF 啟動腳本已核對。未執行 GitHub 發布或任何雲端倉庫操作。
 - Git 追蹤的 Windows 測試產物：`dist/TailClip-v0.1.0-alpha.6-windows-x64.zip` 及其 `.sha256`；舊版測試包保留供回歸比對。
 - GitHub Release artifacts：版本化 Windows x64 ZIP、Linux x86_64 tarball、兩支 signed Shortcuts 與 `SHA256SUMS`。
 - Windows ZIP 必須包含 `TailClip.exe`、`README-Windows.txt`、`Start-TailClip.cmd`、`Uninstall-TailClip.cmd`、`VERSION.txt`、兩支 signed Shortcuts 與包內 `SHA256SUMS.txt`。
