@@ -24,6 +24,7 @@
 - [x] `v0.1.0-alpha.5` 明確將四個 API 回應從 URL 內容解析為 Dictionary，再讀取欄位，排除 iOS 將 JSON 回應視為文字時的「文字無法轉換到辭典」錯誤；已完成捷徑重開、重新匯出、簽署、測試與 Windows x64 ZIP 解壓驗證。
 - [x] `v0.1.0-alpha.5` 後續修正 Windows 升級清理時序：先完成舊版 Agent 停止與新版接手，再重試移除暫存的 `TailClip.exe.old`，避免執行中的舊映像仍被 Windows 鎖定而留下整份舊 EXE。
 - [x] `v0.1.0-alpha.6` 重建兩支捷徑：明確 UUID 資料流、設定驗證、固定 config.json 檔名及讀回、重新配對、空值與 API 錯誤處理；macOS 15.7.7 原生 Shortcuts + 真實 Go API 的 17 項隔離整合驗收全通過。
+- [x] `v0.1.0-alpha.7` 修正 Windows 剪貼簿操作未固定 OS thread、狀態查詢未與讀寫序列化及 CloseClipboard 結果被忽略的問題；維持同一捷徑／API／配對格式。
 - [x] 2026-09-05 使用者回報 alpha.6 iPhone ↔ Windows 核心捷徑傳輸實機測試成功，確認本次修復可用；未將此回報擴張為以下完整平台驗收。
 - [ ] 在 Windows 11 x64 與實際 iPhone 完成首次安裝、QR 配對、雙向文字、Share Sheet、自啟、重開機與解除安裝驗收。
 - [ ] 在 Ubuntu 26.04 GNOME Wayland 與實際 iPhone 完成相同 E2E。
@@ -326,13 +327,21 @@ Tailscale Serve 會在代理前移除 `/tailclip` mount prefix，因此 Agent �
 - 安裝只要求雙擊 `TailClip.exe`；其他檔案是說明、備援或移除入口，不得要求使用者執行額外安裝腳本。
 - Agent 必須在互動式登入使用者 session 運行，不建立 Session 0 service。
 - 使用 Win32 `OpenClipboard`、`EmptyClipboard`、`SetClipboardData`、`GetClipboardData` 與 `CF_UNICODETEXT`。
-- clipboard lock 採短暫 exponential backoff，總等待不超過 1 秒。
+- 剪貼簿的狀態查詢、讀取與寫入共用同一個 mutex；完整 native 交易透過 runtime.LockOSThread 固定 OS thread，按 Create owner → Open → 操作 → Close → Destroy owner 順序執行，清理結果不可忽略。
+- 每次交易使用有效的隱藏 message-only owner 視窗；資料使用立即呈現的 CF_UNICODETEXT，不保留視窗或延遲呈現狀態。
+- 只有 ERROR_ACCESS_DENIED 對應的占用錯誤做短暫 exponential backoff，重試取得開啟鎖的總等待上限為 1 秒，每次等待裁切至剩餘預算；context 取消後不開始新操作。其它 Win32 錯誤直接回報，不能全數標示為「其他程式使用中」。
 - EXE 第一次執行自我複製、註冊 `HKCU` 自啟，並由原始前景程序同步完成安裝；Agent 本身才以背景模式啟動。
 - EXE 原地升級先以 `.old` 保留正在使用的舊映像，待舊版 Agent 停止、新版 Agent 與設定流程完成後再重試清除；不得在舊 Agent 仍執行時只做一次忽略錯誤的刪除。
 - Agent 使用 Win32 通知區圖示提供「開啟連線與配對頁面」、「登入 Windows 後自動啟動」核取項目與「結束 TailClip」；不為此導入 GUI framework 或額外背景程序。
 - 已存在且目標正確的 `/tailclip` Serve path 直接重用；缺少時先由目前使用者設定，只有失敗且提升權限可能有幫助時才使用同一 EXE 的 elevated helper。
 - Serve 完成後必須直接驗證公開 HTTPS health，再開啟設定頁；本機設定頁的 QR 必須在實際瀏覽器中載入，不得出現模板安全替代值。
 - 本版不宣稱 binary 已簽章；下載與 SmartScreen 提示在 README 說明。
+
+#### alpha.7 決策與依據
+
+使用者在 alpha.6 核心傳輸成功後遇到 `clipboard_busy`。此訊息來自桌面 API；程式檢查找到未固定 OS thread 及 Available 未序列化兩項可導致間歇性占用的缺陷。舊邏輯在隔離回歸副本中重現實際 OS thread 遷移與狀態／讀寫重疊；這是已確認的程式缺陷，尚無該次 Windows 現場的持鎖程序證據，不能斷言所有占用皆由 TailClip 引起。
+
+依 [Go runtime.LockOSThread](https://pkg.go.dev/runtime#LockOSThread) 保留 OS thread 狀態；依 [Microsoft OpenClipboard](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-openclipboard) 使用有效 owner 並關閉每次成功的 Open。立即呈現的剪貼簿資料由 Windows 接管，無需長期保留 owner 視窗，參見 [Microsoft Clipboard Operations](https://learn.microsoft.com/en-us/windows/win32/dataxchg/clipboard-operations)。升級停止舊版 Agent 後可清除舊程序遺留的占用；不修改手機捷徑、不輪替 token，也不強制關閉其他應用。
 
 ### 7.3 Ubuntu 26.04 GNOME Wayland
 
@@ -408,6 +417,8 @@ Tailscale Serve 會在代理前移除 `/tailclip` mount prefix，因此 Agent �
 - pairing：nonce entropy、過期、no-store headers、未知 nonce、輸出無秘密日誌。
 - Serve：既有 root mapping 保留、同 path 衝突、idempotent setup、絕不 reset。
 - CI：format、vet、race tests、Windows x64 build、Linux x86_64 build、捷徑資料流與成品來源雜湊。
+- alpha.7：本機測試涵蓋完整交易保持 OS thread、所有成功／失敗／panic 路徑清理、狀態／讀寫互斥、取消、短暫占用恢復、永久占用截止及非占用錯誤不重試。舊版語意的隔離副本在「執行緒遷移」與「並行操作」兩項測試失敗，修正後通過。
+- Windows 原生測試 `TestWindowsClipboardIntegration` 含 100 輪 Unicode 寫入／狀態／讀回、90 個並行查詢／傳輸、另一 OS thread 持鎖後釋放、等待取消及持續占用後恢復；CI 的可丟棄 Windows runner 以 `TAILCLIP_WINDOWS_CLIPBOARD_TEST=1` 啟用。一般 go test 會略過此實體剪貼簿測試，避免改寫開發者內容。本次只完成 Windows 測試 EXE 交叉編譯，未取得 Windows 執行結果。
 - 2026-09-05 macOS 原生整合：17/17 通過。正式簽署成品已在 Mac 以中文名稱匯入並重開；QA 副本與設定已清理，原始剪貼簿已還原。涵蓋首次配對保存／讀回、分享 Unicode/CRLF/跳脫、剪貼簿 fallback、網址、取回、雙向空值、配對憑證拒送、1 MiB／超量、四種無效設定、失效 token、失敗配對保留設定及損壞設定修復。
 - 原生測試從同一 builder 產生 QA 捷徑，只替換設定路徑、loopback URL 規則、移除 iOS ConnectIntent、將通知換為原生 Stop and Output；HTTP、檔案、JSON 與剪貼簿動作保持原生。testhost 使用真實 API 與記憶體剪貼簿，port 由 OS 在 127.0.0.1 分配。這些結果不代表 iPhone、Windows 剪貼簿或 Tailscale 跨裝置連線已驗收。
 
@@ -448,9 +459,9 @@ Windows alpha 只有在「下載後雙擊一次、至多一次必要 UAC、iPhon
 ## 11. 發布
 
 - 第一個 tag：`v0.1.0-alpha.1`。
-- 第一個可下載測試包為 `v0.1.0-alpha.1`；目前 Windows build candidate 為 `v0.1.0-alpha.6`（本機建置，未發布 GitHub）。
+- 第一個可下載測試包為 `v0.1.0-alpha.1`；目前 Windows build candidate 為 `v0.1.0-alpha.7`（本機建置，未發布 GitHub）。
 - alpha.6 本機 ZIP 由乾淨來源 commit `e644810` 建置，EXE 的 `vcs.modified=false`；Windows x64 GUI PE、兩支內嵌捷徑、ZIP 每檔 SHA-256 與 ASCII／CRLF 啟動腳本已核對。未執行 GitHub 發布或任何雲端倉庫操作。
-- Git 追蹤的 Windows 測試產物：`dist/TailClip-v0.1.0-alpha.6-windows-x64.zip` 及其 `.sha256`；舊版測試包保留供回歸比對。
+- Git 追蹤的 Windows 測試產物：`dist/TailClip-v0.1.0-alpha.7-windows-x64.zip` 及其 `.sha256`；舊版測試包保留供回歸比對。
 - GitHub Release artifacts：版本化 Windows x64 ZIP、Linux x86_64 tarball、兩支 signed Shortcuts 與 `SHA256SUMS`。
 - Windows ZIP 必須包含 `TailClip.exe`、`README-Windows.txt`、`Start-TailClip.cmd`、`Uninstall-TailClip.cmd`、`VERSION.txt`、兩支 signed Shortcuts 與包內 `SHA256SUMS.txt`。
 - `Start-TailClip.cmd` 使用 ASCII／CRLF 與完整引號路徑啟動 TailClip，供一鍵啟動服務與配對頁；原有 EXE 直接啟動入口保留。

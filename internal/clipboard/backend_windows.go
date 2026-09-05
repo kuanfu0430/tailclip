@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"syscall"
-	"time"
 	"unicode/utf16"
 	"unsafe"
 
@@ -17,7 +16,6 @@ import (
 const (
 	cfUnicodeText = 13
 	gmemMoveable  = 0x0002
-	maxOpenWait   = time.Second
 )
 
 var (
@@ -35,6 +33,8 @@ var (
 	procGlobalUnlock      = kernel32.NewProc("GlobalUnlock")
 	procGlobalSize        = kernel32.NewProc("GlobalSize")
 	procMoveMemory        = kernel32.NewProc("RtlMoveMemory")
+	procCreateWindowExW   = user32.NewProc("CreateWindowExW")
+	procDestroyWindow     = user32.NewProc("DestroyWindow")
 )
 
 type windowsBackend struct{}
@@ -42,42 +42,40 @@ type windowsBackend struct{}
 func NewSystemBackend() Backend { return windowsBackend{} }
 
 func (windowsBackend) Available(ctx context.Context) error {
-	if err := openClipboard(ctx); err != nil {
-		return err
-	}
-	closeClipboard()
-	return nil
+	return windowsClipboardSession.run(ctx, func() error { return nil })
 }
 
 func (windowsBackend) ReadText(ctx context.Context) (string, error) {
-	if err := openClipboard(ctx); err != nil {
+	var units []uint16
+	err := windowsClipboardSession.run(ctx, func() error {
+		available, _, _ := procIsFormatAvailable.Call(cfUnicodeText)
+		if available == 0 {
+			return ErrNoText
+		}
+		handle, _, callErr := procGetClipboardData.Call(cfUnicodeText)
+		if handle == 0 {
+			return fmt.Errorf("讀取 Windows 剪貼簿失敗: %w", normalizeCallError(callErr))
+		}
+		size, _, callErr := procGlobalSize.Call(handle)
+		if size == 0 {
+			return fmt.Errorf("取得 Windows 剪貼簿大小失敗: %w", normalizeCallError(callErr))
+		}
+		if size < 2 {
+			return ErrNoText
+		}
+		pointer, _, callErr := procGlobalLock.Call(handle)
+		if pointer == 0 {
+			return fmt.Errorf("鎖定 Windows 剪貼簿資料失敗: %w", normalizeCallError(callErr))
+		}
+		defer procGlobalUnlock.Call(handle)
+		units = make([]uint16, int(size/2))
+		procMoveMemory.Call(uintptr(unsafe.Pointer(&units[0])), pointer, uintptr(len(units)*2))
+		return nil
+	})
+	if err != nil {
 		return "", err
 	}
-	defer closeClipboard()
-
-	available, _, _ := procIsFormatAvailable.Call(cfUnicodeText)
-	if available == 0 {
-		return "", ErrNoText
-	}
-	handle, _, callErr := procGetClipboardData.Call(cfUnicodeText)
-	if handle == 0 {
-		return "", fmt.Errorf("讀取 Windows 剪貼簿失敗: %w", normalizeCallError(callErr))
-	}
-	size, _, callErr := procGlobalSize.Call(handle)
-	if size < 2 {
-		if size == 0 && !errors.Is(normalizeCallError(callErr), syscall.Errno(0)) {
-			return "", fmt.Errorf("取得 Windows 剪貼簿大小失敗: %w", normalizeCallError(callErr))
-		}
-		return "", ErrNoText
-	}
-	pointer, _, callErr := procGlobalLock.Call(handle)
-	if pointer == 0 {
-		return "", fmt.Errorf("鎖定 Windows 剪貼簿資料失敗: %w", normalizeCallError(callErr))
-	}
-	defer procGlobalUnlock.Call(handle)
-
-	units := make([]uint16, int(size/2))
-	procMoveMemory.Call(uintptr(unsafe.Pointer(&units[0])), pointer, uintptr(len(units)*2))
+	// 複製完即釋放剪貼簿，解碼不占用 Windows 的全域鎖。
 	end := 0
 	for end < len(units) && units[end] != 0 {
 		end++
@@ -89,8 +87,12 @@ func (windowsBackend) ReadText(ctx context.Context) (string, error) {
 }
 
 func (windowsBackend) WriteText(ctx context.Context, text string) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	units := utf16.Encode([]rune(text))
 	units = append(units, 0)
+
 	size := uintptr(len(units) * 2)
 	handle, _, callErr := procGlobalAlloc.Call(gmemMoveable, size)
 	if handle == 0 {
@@ -111,46 +113,53 @@ func (windowsBackend) WriteText(ctx context.Context, text string) error {
 	procGlobalUnlock.Call(handle)
 
 	// 先完整準備資料，再開啟及清空剪貼簿；記憶體配置失敗時不破壞原內容。
-	if err := openClipboard(ctx); err != nil {
-		return err
-	}
-	defer closeClipboard()
-	if result, _, callErr := procEmptyClipboard.Call(); result == 0 {
-		return fmt.Errorf("清空 Windows 剪貼簿失敗: %w", normalizeCallError(callErr))
-	}
-
-	if result, _, callErr := procSetClipboardData.Call(cfUnicodeText, handle); result == 0 {
-		return fmt.Errorf("寫入 Windows 剪貼簿失敗: %w", normalizeCallError(callErr))
-	}
-	owned = false // SetClipboardData 成功後由系統接管 handle。
-	return nil
+	return windowsClipboardSession.run(ctx, func() error {
+		if result, _, callErr := procEmptyClipboard.Call(); result == 0 {
+			return fmt.Errorf("清空 Windows 剪貼簿失敗: %w", normalizeCallError(callErr))
+		}
+		if result, _, callErr := procSetClipboardData.Call(cfUnicodeText, handle); result == 0 {
+			return fmt.Errorf("寫入 Windows 剪貼簿失敗: %w", normalizeCallError(callErr))
+		}
+		owned = false // SetClipboardData 成功後由系統接管 handle。
+		return nil
+	})
 }
 
-func openClipboard(ctx context.Context) error {
-	deadline := time.Now().Add(maxOpenWait)
-	delay := 10 * time.Millisecond
-	for {
-		if result, _, _ := procOpenClipboard.Call(0); result != 0 {
-			return nil
+var windowsClipboardSession = nativeSession{
+	createOwner: createClipboardOwner,
+	destroyOwner: func(owner uintptr) error {
+		if result, _, err := procDestroyWindow.Call(owner); result == 0 {
+			return fmt.Errorf("釋放 Windows 剪貼簿視窗失敗: %w", normalizeCallError(err))
 		}
-		if !time.Now().Before(deadline) {
-			return ErrBusy
+		return nil
+	},
+	open: func(owner uintptr) error {
+		if result, _, err := procOpenClipboard.Call(owner); result == 0 {
+			if errors.Is(err, windows.ERROR_ACCESS_DENIED) {
+				return ErrBusy
+			}
+			return fmt.Errorf("開啟 Windows 剪貼簿失敗: %w", normalizeCallError(err))
 		}
-		timer := time.NewTimer(delay)
-		select {
-		case <-ctx.Done():
-			timer.Stop()
-			return ctx.Err()
-		case <-timer.C:
+		return nil
+	},
+	close: func() error {
+		if result, _, err := procCloseClipboard.Call(); result == 0 {
+			return fmt.Errorf("關閉 Windows 剪貼簿失敗: %w", normalizeCallError(err))
 		}
-		if delay < 160*time.Millisecond {
-			delay *= 2
-		}
-	}
+		return nil
+	},
 }
 
-func closeClipboard() {
-	procCloseClipboard.Call()
+func createClipboardOwner() (uintptr, error) {
+	// 標準 STATIC class 的 message-only 視窗，無 UI、callback 或延遲呈現內容。
+	// OpenClipboard(NULL) 無法提供 EmptyClipboard/SetClipboardData 所需的有效 owner。
+	className, _ := windows.UTF16PtrFromString("STATIC")
+	owner, _, err := procCreateWindowExW.Call(0, uintptr(unsafe.Pointer(className)), 0, 0,
+		0, 0, 0, 0, ^uintptr(2), 0, 0, 0) // HWND_MESSAGE = -3
+	if owner == 0 {
+		return 0, fmt.Errorf("建立 Windows 剪貼簿視窗失敗: %w", normalizeCallError(err))
+	}
+	return owner, nil
 }
 
 func normalizeCallError(err error) error {

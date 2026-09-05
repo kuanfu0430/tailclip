@@ -30,6 +30,11 @@ jobs:
         run: python -m unittest discover -s shortcuts/tests -v
       - name: 單元與整合測試
         run: go test ./...
+      - name: Windows 原生剪貼簿回歸
+        if: runner.os == 'Windows'
+        env:
+          TAILCLIP_WINDOWS_CLIPBOARD_TEST: "1"
+        run: go test -count=1 ./internal/clipboard -run TestWindowsClipboardIntegration -v
       - name: Race 測試
         if: runner.os == 'Linux'
         run: go test -race ./...
@@ -51,11 +56,11 @@ jobs:
         run: |
           mkdir -p build-output windows-package
           go build -trimpath -ldflags="-s -w -H=windowsgui" -o windows-package/TailClip.exe ./cmd/tailclip
-          cp packaging/windows/README-Windows.txt packaging/windows/Uninstall-TailClip.cmd windows-package/
+          cp packaging/windows/README-Windows.txt packaging/windows/Start-TailClip.cmd packaging/windows/Uninstall-TailClip.cmd windows-package/
           cp shortcuts/dist/TailClip-Send.shortcut shortcuts/dist/TailClip-Pull.shortcut windows-package/
           printf 'CI build %s\n' "${GITHUB_SHA}" > windows-package/VERSION.txt
           cd windows-package
-          sha256sum TailClip.exe README-Windows.txt Uninstall-TailClip.cmd VERSION.txt TailClip-Send.shortcut TailClip-Pull.shortcut > SHA256SUMS.txt
+          sha256sum TailClip.exe README-Windows.txt Start-TailClip.cmd Uninstall-TailClip.cmd VERSION.txt TailClip-Send.shortcut TailClip-Pull.shortcut > SHA256SUMS.txt
           zip -9 -r ../build-output/TailClip-Windows-x64.zip .
       - name: Linux x86_64 build candidate
         env:
@@ -77,6 +82,7 @@ jobs:
           unzip -q build-output/TailClip-Windows-x64.zip -d package-check
           test -s package-check/TailClip.exe
           test -s package-check/README-Windows.txt
+          test -s package-check/Start-TailClip.cmd
           test -s package-check/Uninstall-TailClip.cmd
           test -s package-check/VERSION.txt
           test -s package-check/TailClip-Send.shortcut

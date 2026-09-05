@@ -19,7 +19,7 @@ type Backend interface {
 	WriteText(context.Context, string) error
 }
 
-// Synchronized 確保讀寫不會在同一程序內互相搶用系統剪貼簿。
+// Synchronized 確保狀態查詢與讀寫不會在同一程序內互相搶用系統剪貼簿。
 type Synchronized struct {
 	backend Backend
 	mu      sync.Mutex
@@ -30,18 +30,29 @@ func NewSynchronized(backend Backend) *Synchronized {
 }
 
 func (s *Synchronized) Available(ctx context.Context) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	return s.backend.Available(ctx)
 }
 
 func (s *Synchronized) ReadText(ctx context.Context) (string, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if err := ctx.Err(); err != nil {
+		return "", err
+	}
 	return s.backend.ReadText(ctx)
 }
 
 func (s *Synchronized) WriteText(ctx context.Context, text string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	return s.backend.WriteText(ctx, text)
 }
 

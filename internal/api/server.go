@@ -252,7 +252,7 @@ func (s *Server) writeClipboard(w http.ResponseWriter, r *http.Request) {
 func (s *Server) writeClipboardError(w http.ResponseWriter, r *http.Request, err error) {
 	if errors.Is(err, clipboard.ErrBusy) {
 		setMetrics(r, 0, "clipboard_busy")
-		writeError(w, http.StatusServiceUnavailable, "clipboard_busy", "剪貼簿目前正被其他程式使用，請再試一次。")
+		writeError(w, http.StatusServiceUnavailable, "clipboard_busy", "電腦剪貼簿暫時忙碌，請稍候再試。若持續發生，請重新啟動 TailClip。")
 		return
 	}
 	if errors.Is(err, clipboard.ErrUnavailable) {

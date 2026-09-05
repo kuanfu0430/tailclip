@@ -18,6 +18,8 @@ TailClip v0.1-alpha Windows 11 x64 測試版
 
 不需要安裝 Go，也不需要手動輸入網址或 token。
 
+若已在 alpha.6 完成配對，這次只需執行新版 TailClip.exe；捷徑與配對資料不需要重裝或重設。alpha.7 修正電腦端剪貼簿偶發占用，並讓狀態查詢與文字傳輸依序執行。
+
 若從 alpha.5 或更舊版升級，執行新版 TailClip.exe 後請從配對頁安裝兩支新版、複製配對資料並執行「TailClip：取回」。同名時選擇取代；日後請使用中文名稱的新版，避免誤開 TailClip-Send 2 等舊副本。既有桌面設定會保留。
 
 第一次若先執行「TailClip：傳送」，只會完成配對；再複製要傳送的文字並執行一次。遇到「無效的 URL：/status」可按以上方式重新配對，不需手動改捷徑或刪除設定檔。
@@ -43,3 +45,5 @@ TailClip v0.1-alpha Windows 11 x64 測試版
 - SHA256SUMS.txt 可用來核對本資料夾內的執行檔與捷徑。
 
 Start-TailClip.cmd 是一鍵啟動入口，會開啟 TailClip 服務與配對頁；直接雙擊 TailClip.exe 亦可。啟動腳本採 ASCII 編碼，避免中文系統字碼造成解析失敗。
+
+剪貼簿暫時忙碌時會自動重試取得開啟鎖，最多 1 秒。若反覆失敗，請從通知區結束 TailClip 後重新啟動；其他應用若持續占用 Windows 剪貼簿，仍須等它釋放。
