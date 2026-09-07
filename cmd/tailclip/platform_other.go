@@ -17,6 +17,8 @@ func defaultAction(context.Context, string) error {
 
 func finishInstall(context.Context, string) error { return errors.New("此平台沒有安裝流程") }
 
+func prepareTailnet(context.Context) error { return errors.New("此平台沒有連線設定流程") }
+
 func uninstallAction(context.Context, string) error {
 	return errors.New("此平台沒有解除安裝流程")
 }

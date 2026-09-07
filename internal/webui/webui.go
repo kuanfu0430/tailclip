@@ -1,6 +1,7 @@
 package webui
 
 import (
+	"context"
 	"encoding/base64"
 	"fmt"
 	"html/template"
@@ -102,6 +103,11 @@ func (h *PublicHandler) expired(w http.ResponseWriter) {
 }
 
 type DashboardData struct {
+	Mode               string
+	ActionPath         string
+	ConnectionMessage  string
+	SimplePaired       bool
+	Configure          func(context.Context, string) error
 	DeviceName         string
 	DNSName            string
 	PairingURL         string
@@ -113,9 +119,13 @@ type DashboardData struct {
 
 func RenderDashboard(w http.ResponseWriter, data DashboardData) error {
 	setPrivateHeaders(w)
-	png, err := qrcode.Encode(data.PairingURL, qrcode.Medium, 360)
-	if err != nil {
-		return fmt.Errorf("無法建立配對 QR: %w", err)
+	var png []byte
+	if data.PairingURL != "" {
+		var err error
+		png, err = qrcode.Encode(data.PairingURL, qrcode.Medium, 360)
+		if err != nil {
+			return fmt.Errorf("無法建立配對 QR: %w", err)
+		}
 	}
 	view := dashboardPageData{
 		DashboardData: data,
@@ -205,6 +215,25 @@ var dashboardPage = template.Must(template.New("dashboard").Parse(pageShellStart
 <main class="shell wide">
   <section class="glass dashboard">
     <header><div class="brand"><span class="mark">T</span><span>TailClip</span></div><span class="badge">{{.AgentVersion}}</span></header>
+    {{if .Configure}}
+    <p class="lead">{{if eq .Mode "choose"}}你想如何連接裝置？{{else if eq .Mode "simple"}}目前使用簡易連線服務。{{else}}目前使用自己的 Tailscale。{{end}}</p>
+    {{if .ConnectionMessage}}<p class="notice" role="status">{{.ConnectionMessage}}</p>{{end}}
+    <form method="post" action="{{.ActionPath}}" class="stack">
+      <button class="button secondary" name="action" value="tailscale">使用現有 Tailscale</button>
+      <button class="button secondary" name="action" value="simple">使用簡易連線／重新連接</button>
+    </form>
+    {{end}}
+    {{if eq .Mode "choose"}}
+      <p class="foot">已有連線的人沿用 Tailscale；沒有 Tailscale 的人選簡易連線。只會啟用你選擇的入口。</p>
+    {{else if eq .Mode "simple"}}
+      <p class="lead">{{if .SimplePaired}}已保存手機配對。{{else}}尚未連接手機。{{end}}按下「連接手機」後，用 TailClip iPhone App 掃碼。</p>
+      <p class="notice">桌面測試版：iPhone App 與端上測試尚未完成，不能使用 iPhone 相機或舊捷徑完成此配對。此入口使用 Tailcat 公共加密中繼，不保證服務可用率。</p>
+      <form method="post" action="{{.ActionPath}}" class="stack">
+        <button class="button primary" name="action" value="pair" {{if .SimplePaired}}onclick="return confirm('新手機完成配對後會取代舊手機，繼續嗎？')"{{end}}>連接手機／產生新 QR</button>
+        <button class="button danger" name="action" value="revoke" onclick="return confirm('確定解除手機連接？')">解除手機連接</button>
+      </form>
+      {{if .PairingURL}}<div class="qr-wrap"><img class="qr" src="{{.QRCode}}" alt="TailClip 簡易連線配對 QR"><span>此 QR 於 {{.ExpiresAtText}} 失效</span></div>{{end}}
+    {{else if .PairingURL}}
     <div class="grid">
       <div class="copy">
         <p class="eyebrow">{{.DeviceName}}</p>
@@ -222,6 +251,9 @@ var dashboardPage = template.Must(template.New("dashboard").Parse(pageShellStart
       </div>
       <div class="qr-wrap"><img class="qr" src="{{.QRCode}}" alt="TailClip 限時配對 QR"><span>使用 iPhone 相機掃描</span></div>
     </div>
+    {{else}}
+      <p class="notice">請確認 Tailscale 已登入並連線，再重新選擇入口。</p>
+    {{end}}
   </section>
 </main><script>
 function rotatePairing(form) {

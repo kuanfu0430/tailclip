@@ -65,6 +65,18 @@ func testWindowsInstaller(calls *[]string, client fakeWindowsTailscaleClient) wi
 	}
 }
 
+func TestNewInstallationDoesNotRequireTailscale(t *testing.T) {
+	var calls []string
+	installer := testWindowsInstaller(&calls, fakeWindowsTailscaleClient{})
+	installer.skipTailscale = func() (bool, error) { return true, nil }
+	if err := installer.finish(context.Background(), "TailClip.exe"); err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(calls, []string{"autostart", "agent", "open-settings"}) {
+		t.Fatal(calls)
+	}
+}
+
 func TestWindowsInstallerCopiesThenCompletesSynchronously(t *testing.T) {
 	root := t.TempDir()
 	source := filepath.Join(root, "download", "TailClip.exe")

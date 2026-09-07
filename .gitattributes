@@ -1,1 +1,2 @@
 packaging/windows/*.cmd text eol=crlf
+packaging/linux/*.sh text eol=lf

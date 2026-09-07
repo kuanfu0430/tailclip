@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -74,9 +75,26 @@ func FindCLI() (string, error) {
 type Status struct {
 	BackendState string `json:"BackendState"`
 	Self         struct {
-		DNSName  string `json:"DNSName"`
-		HostName string `json:"HostName"`
+		DNSName  string   `json:"DNSName"`
+		HostName string   `json:"HostName"`
+		UserID   int64    `json:"UserID"`
+		Tags     []string `json:"Tags"`
 	} `json:"Self"`
+	User map[string]UserProfile `json:"User"`
+}
+
+type UserProfile struct {
+	LoginName string `json:"LoginName"`
+}
+
+// OwnerLogin 僅辨識目前已連線且未加 tag 的本機節點擁有者。
+func (s Status) OwnerLogin() (string, error) {
+	login := s.User[strconv.FormatInt(s.Self.UserID, 10)].LoginName
+	if s.BackendState != "Running" || s.Self.UserID <= 0 || len(s.Self.Tags) != 0 ||
+		login == "" || strings.TrimSpace(login) != login || strings.ContainsAny(login, "\r\n\x00") {
+		return "", errors.New("無法確認這台電腦的 Tailscale 使用者；原配對仍可使用")
+	}
+	return login, nil
 }
 
 func (c *Client) Status(ctx context.Context) (Status, error) {

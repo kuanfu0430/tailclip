@@ -1,3 +1,14 @@
+TailClip v0.2.0-desktop.1 桌面測試版
+=================================
+
+新裝可先選擇連線方式，不必先安裝 Tailscale。
+已有設定會沿用原 Tailscale、Serve、token 與捷徑，不需重新配置。
+簡易連線使用 Tailcat 公共加密中繼，可在桌面建立／撤銷配對。
+iPhone App 尚未交付；新的免 QR 捷徑也尚未製作／簽署，本次未進行 iPhone 端測試。
+包內兩支捷徑仍是下列既有 QR 入口。請勿用 iPhone 相機／舊捷徑掃簡易連線 QR。
+要退回 alpha.7，先在新版切回「使用現有 Tailscale」再結束新版，保留設定檔。
+
+以下為既有 Tailscale 入口的使用方式：
 TailClip v0.1-alpha Windows 11 x64 測試版
 ========================================
 

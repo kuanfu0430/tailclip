@@ -35,6 +35,7 @@ type Server struct {
 	clipboard clipboard.Backend
 	logger    *slog.Logger
 	limiter   *rateLimiter
+	owner     OwnerIdentity
 }
 
 type Options struct {
@@ -44,6 +45,7 @@ type Options struct {
 	RateLimit  int
 	RateWindow time.Duration
 	LimiterNow func() time.Time
+	Owner      OwnerIdentity
 }
 
 func New(options Options) *Server {
@@ -68,6 +70,7 @@ func New(options Options) *Server {
 		clipboard: options.Clipboard,
 		logger:    logger,
 		limiter:   limiter,
+		owner:     options.Owner,
 	}
 }
 
@@ -84,11 +87,16 @@ func (s *Server) health(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusMethodNotAllowed, "method_not_allowed", "這個端點只接受 GET。")
 		return
 	}
+	capabilities := []string{"bearer_v1"}
+	if s.owner != nil {
+		capabilities = append(capabilities, "tailscale_user_v1")
+	}
 	writeJSON(w, http.StatusOK, map[string]any{
 		"status":        "ok",
 		"service":       "tailclip-agent",
 		"api_version":   1,
 		"agent_version": buildinfo.Version,
+		"capabilities":  capabilities,
 	})
 }
 
@@ -106,10 +114,10 @@ func (s *Server) protected(direction string, next http.HandlerFunc) http.Handler
 			s.log(direction, bytesCount, statusCode, errorCode, time.Since(started))
 			return
 		}
-		if !s.authorized(r) {
-			statusCode = http.StatusUnauthorized
-			errorCode = "not_paired"
-			writeError(w, statusCode, errorCode, "配對已失效，請在電腦上重新顯示配對 QR。")
+		if authError := s.authorize(r); authError != nil {
+			statusCode = authError.status
+			errorCode = authError.code
+			writeError(w, statusCode, errorCode, authError.message)
 			s.log(direction, bytesCount, statusCode, errorCode, time.Since(started))
 			return
 		}

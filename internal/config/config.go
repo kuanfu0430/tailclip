@@ -27,7 +27,17 @@ type Config struct {
 	DeviceName      string `json:"device_name"`
 	TailscaleDevice string `json:"tailscale_device,omitempty"`
 	PairingToken    string `json:"pairing_token"`
+	ConnectionMode  string `json:"connection_mode,omitempty"`
 }
+
+// Mode 將舊設定的缺省值視為既有 Tailscale 入口。
+func (c Config) Mode() string {
+	if c.ConnectionMode == "" {
+		return "tailscale"
+	}
+	return c.ConnectionMode
+}
+func (s *Store) Path() string { return s.path }
 
 // Store 讓 API 與設定頁安全共享最新設定。
 type Store struct {
@@ -136,6 +146,7 @@ func LoadOrCreate(path string) (Config, bool, error) {
 		DeviceName:      hostname,
 		TailscaleDevice: hostname,
 		PairingToken:    token,
+		ConnectionMode:  "choose",
 	}
 	if err := Save(path, cfg); err != nil {
 		return Config{}, false, err
@@ -217,6 +228,9 @@ func ValidToken(token string) bool {
 }
 
 func (c Config) Validate() error {
+	if c.Mode() != "tailscale" && c.Mode() != "simple" && c.Mode() != "choose" {
+		return errors.New("連線方式無效，原設定未變更")
+	}
 	if c.Version != CurrentVersion {
 		return fmt.Errorf("%w: %d", ErrUnsupportedVersion, c.Version)
 	}

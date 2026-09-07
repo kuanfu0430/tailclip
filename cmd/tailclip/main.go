@@ -78,12 +78,9 @@ func runAgent(executable string) error {
 		return err
 	}
 	defer closer.Close()
-	tailnet, err := tailscale.New()
-	if err != nil {
-		return err
-	}
 	service, err := agent.New(agent.Options{
-		Store: store, Clipboard: clipboard.NewSystemBackend(), Tailnet: tailnet,
+		PrepareTailnet: prepareTailnet,
+		Store:          store, Clipboard: clipboard.NewSystemBackend(), Tailnet: lazyTailnet{},
 		Shortcuts: webui.ShortcutAssets{Send: shortcutassets.Send, Pull: shortcutassets.Pull}, Logger: logger,
 	})
 	if err != nil {
@@ -114,6 +111,17 @@ func runAgent(executable string) error {
 		}
 		return agentErr
 	}
+}
+
+// B 與首次選擇頁不需要 Tailscale；只有 A 查詢狀態時才尋找 CLI。
+type lazyTailnet struct{}
+
+func (lazyTailnet) Status(ctx context.Context) (tailscale.Status, error) {
+	client, err := tailscale.New()
+	if err != nil {
+		return tailscale.Status{}, err
+	}
+	return client.Status(ctx)
 }
 
 func configureServe(ctx context.Context) error {
