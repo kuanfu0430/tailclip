@@ -16,6 +16,7 @@ import (
 	"time"
 	"unsafe"
 
+	"github.com/kuanfu0430/tailclip/internal/config"
 	"github.com/kuanfu0430/tailclip/internal/tailscale"
 	"golang.org/x/sys/windows"
 	"golang.org/x/sys/windows/registry"
@@ -49,6 +50,7 @@ type windowsInstaller struct {
 	configureServe  func(context.Context) error
 	runElevated     func(string, string) error
 	openSettings    func(context.Context, string) error
+	skipTailscale   func() (bool, error)
 }
 
 func defaultWindowsInstaller() windowsInstaller {
@@ -64,6 +66,14 @@ func defaultWindowsInstaller() windowsInstaller {
 		configureServe: configureServe,
 		runElevated:    runElevated,
 		openSettings:   openSettings,
+		skipTailscale: func() (bool, error) {
+			path, err := config.DefaultPath()
+			if err != nil {
+				return false, err
+			}
+			cfg, _, err := config.LoadOrCreate(path)
+			return cfg.Mode() != "tailscale", err
+		},
 	}
 }
 
@@ -106,6 +116,31 @@ func (installer windowsInstaller) finish(ctx context.Context, executable string)
 	if err := installer.ensureAgent(ctx, executable); err != nil {
 		return err
 	}
+	if installer.skipTailscale != nil {
+		skip, err := installer.skipTailscale()
+		if err != nil {
+			return err
+		}
+		if skip {
+			return installer.openSettings(ctx, executable)
+		}
+	}
+	if err := installer.prepare(ctx, executable); err != nil {
+		return err
+	}
+	return installer.openSettings(ctx, executable)
+}
+
+// 共用既有的名稱告知及按需 UAC 流程。
+func prepareTailnet(ctx context.Context) error {
+	executable, err := os.Executable()
+	if err != nil {
+		return err
+	}
+	return defaultWindowsInstaller().prepare(ctx, executable)
+}
+
+func (installer windowsInstaller) prepare(ctx context.Context, executable string) error {
 	client, err := installer.newTailscale()
 	if err != nil {
 		return err
@@ -119,7 +154,7 @@ func (installer windowsInstaller) finish(ctx context.Context, executable string)
 		return err
 	}
 	if configured {
-		return installer.openSettings(ctx, executable)
+		return nil
 	}
 
 	accepted, err := installer.confirmHTTPS(status.Self.DNSName)
@@ -140,7 +175,7 @@ func (installer windowsInstaller) finish(ctx context.Context, executable string)
 			return fmt.Errorf("目前使用者設定 Tailscale Serve 失敗（%v）；系統管理員權限重試也未完成: %w", directErr, err)
 		}
 	}
-	return installer.openSettings(ctx, executable)
+	return nil
 }
 
 func uninstallAction(ctx context.Context, executable string) error {
@@ -163,8 +198,13 @@ func uninstallAction(ctx context.Context, executable string) error {
 	if _, err := os.Stat(helper); err != nil {
 		helper = executable
 	}
-	if err := runElevated(helper, "serve-remove"); err != nil {
-		return fmt.Errorf("Serve path 未移除，因此解除安裝已安全停止: %w", err)
+	if _, err := tailscale.New(); !errors.Is(err, tailscale.ErrNotInstalled) {
+		if err != nil {
+			return err
+		}
+		if err := runElevated(helper, "serve-remove"); err != nil {
+			return fmt.Errorf("Serve path 未移除，因此解除安裝已安全停止: %w", err)
+		}
 	}
 	if err := removeAutostart(); err != nil {
 		return err

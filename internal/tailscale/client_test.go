@@ -38,6 +38,29 @@ func TestStatusAndBaseURL(t *testing.T) {
 	}
 }
 
+func TestOwnerLoginRejectsTaggedAndMissingOwner(t *testing.T) {
+	for _, tc := range []struct {
+		body    string
+		allowed bool
+	}{
+		{`{"BackendState":"Running","Self":{"DNSName":"pc.example.ts.net","UserID":42},"User":{"42":{"LoginName":"owner@example.com"}}}`, true},
+		{`{"BackendState":"Running","Self":{"DNSName":"pc.example.ts.net","UserID":42,"Tags":["tag:server"]},"User":{"42":{"LoginName":"owner@example.com"}}}`, false},
+		{`{"BackendState":"Running","Self":{"DNSName":"pc.example.ts.net","UserID":42},"User":{"99":{"LoginName":"owner@example.com"}}}`, false},
+	} {
+		s, err := NewWithRunner(&fakeRunner{outputs: [][]byte{[]byte(tc.body)}}).Status(context.Background())
+		if err != nil {
+			t.Fatal(err)
+		}
+		login, err := s.OwnerLogin()
+		if (err == nil) != tc.allowed {
+			t.Fatalf("允許=%v error=%v", tc.allowed, err)
+		}
+		if tc.allowed && login != "owner@example.com" {
+			t.Fatal(login)
+		}
+	}
+}
+
 func TestEnsureServePreservesExistingRoot(t *testing.T) {
 	status := []byte(`{"Web":{"work.example.ts.net:443":{"Handlers":{"/":{"Proxy":"http://127.0.0.1:8080"}}}}}`)
 	runner := &fakeRunner{outputs: [][]byte{status, nil}}

@@ -1,8 +1,8 @@
 # TailClip 技術與產品規格
 
-- **文件版本：** 0.2
-- **日期：** 2026-09-05
-- **專案狀態：** v0.1-alpha 開發中
+- **文件版本：** 0.5
+- **日期：** 2026-09-07
+- **專案狀態：** v0.1-alpha 開發中；M2 單主機雙入口實作中；新增 Debian 13 GNOME Wayland 驗收範圍
 - **首版平台：** iOS 26、Windows 11 x64、Ubuntu 26.04 x86_64 GNOME Wayland
 - **傳輸：** HTTPS over Tailscale Serve
 
@@ -10,7 +10,7 @@
 
 ## 0. 實作進度
 
-最後更新：2026-09-05。
+最後更新：2026-09-07。
 
 - [x] 將規格收斂為 UTF-8 純文字 M1，完成共用設定、認證、API、限流、配對與無內容日誌。
 - [x] 完成 Windows Win32 clipboard backend、自我安裝、自啟、Serve 設定、HTTPS health 與本機 QR 頁。
@@ -29,6 +29,8 @@
 - [ ] 在 Windows 11 x64 與實際 iPhone 完成首次安裝、QR 配對、雙向文字、Share Sheet、自啟、重開機與解除安裝驗收。
 - [ ] 在 Ubuntu 26.04 GNOME Wayland 與實際 iPhone 完成相同 E2E。
 - [ ] 實機驗收通過後，才把對應平台從 build candidate 改標為已支援。
+- [x] 2026-09-07 依使用者指示整合 issue #1／#4，將 M2 收斂為單台 Windows 與 iPhone 的雙入口；第 13、14 節取代先前較廣的規劃。此勾選僅代表文件完成。
+- [ ] 依第 14 節實作與驗收 M2；桌面端已實作；依最新授權先交付 Windows 可完成部分，iPhone 成品與實機驗收另列未完成。
 
 目前決策：Git 只追蹤版本化的完整 Windows 測試 ZIP 與其 checksum；裸 EXE、臨時 staging 目錄及其他可重建輸出仍忽略。原因是測試者必須能從 GitHub 直接下載使用，但倉庫不應混入每次 CI 都會變動的中繼檔。
 
@@ -72,7 +74,7 @@ TailClip 讓使用者在 iPhone 與 Windows／Linux 電腦之間手動傳送目�
 - 自動更新、Windows code signing、deb／rpm／AppImage。
 - 公開 SaaS、跨 tailnet 傳送或剪貼簿歷史。
 
-這些項目只有在目前版本通過實機驗收後才進入後續規格，不先提交尚未使用的抽象層。
+除使用者於 2026-09-07 指示提前規劃的 M2（第 13、14 節）外，這些項目只有在目前版本通過實機驗收後才進入後續規格，不先提交尚未使用的抽象層。M2 規劃不代表 M1 未完成驗收已通過。
 
 ## 3. 核心使用流程
 
@@ -472,13 +474,116 @@ Windows alpha 只有在「下載後雙擊一次、至多一次必要 UAC、iPhon
 
 ## 12. 後續 Roadmap
 
-只有 M1 實機完成後再依序評估：
+M2 僅執行第 13、14 節的單主機雙入口；未採用的 issue #1／#4 擴充範圍移至 [#5 待做功能](https://github.com/kuanfu0430/tailclip/issues/5)。其餘項目仍另行評估：
 
-1. 多裝置與每裝置 token。
+1. 多主機管理、多目標切換與進階授權（待做，不屬 M2）。
 2. `text/uri-list`、HTML + plain fallback、PNG。
 3. Taildrop 檔案傳送與受控暫存。
 4. X11／其他 Linux 桌面與正式套件。
-5. 原生 iOS App、Keychain 與 App Intents。
+5. A 的原生 iOS App 與擴充 App Intents（B 必要的 iPhone App／Keychain 已納入 M2）。
 6. 明確 opt-in 的半自動同步。
 
 上述項目目前不是相容性承諾，也不應提前建立程式碼骨架。
+
+## 13. M2 需求 SPEC：單主機雙入口
+
+### 13.1 本次範圍
+
+2026-09-07 依使用者最新指示整合 [issue #1](https://github.com/kuanfu0430/tailclip/issues/1) 與 [issue #4](https://github.com/kuanfu0430/tailclip/issues/4)：只改善接入方式，支援單台 Windows 11 x64 或 Debian 13 x86_64 GNOME Wayland 桌面與 iPhone 的手動純文字傳送／取回。2026-09-07 使用者另授權新增 Debian 13 並開始實作；既有 Ubuntu 26.04 功能保留並做必要回歸。Debian 沿用 wl-clipboard 與 systemd 使用者服務，不含 headless、X11 或其他桌面環境。第 1–11 節仍描述已存在的 M1；本節記錄目標規格；桌面交付與未完成項目見 14.2。
+
+| 入口 | 使用者 | 本次要做到的操作 |
+| --- | --- | --- |
+| A：使用現有 Tailscale | 已安裝並使用自己 tailnet 的人 | 原連線與舊捷徑繼續使用；另可安裝新版「傳送／取回」，首次選一次電腦，之後一步操作，不掃 QR、不貼 token。 |
+| B：簡易連線 | 沒有 Tailscale 基礎的新手 | 開啟桌面 TailClip、選簡易連線，安裝 iPhone TailClip App 並掃碼一次；之後開 App 即可重連，按傳送／取回。 |
+
+**免 QR 是 A 新捷徑的需求；B 沿用 issue #4 的一次掃碼。** B 不要求 Tailscale App／帳號／tailnet、Tailcat CLI、捷徑或手動網路設定。原生 iPhone App 是 B 的必要客戶端，不是另做一套多平台產品。
+
+本次不做多主機清單與切換捷徑、Mac／iPad 支援、群組或多人權限管理、共用剪貼簿暫存、自動同步、歷史、離線佇列或兩入口同時對外服務。未採用的功能統一移至 [#5 待做功能](https://github.com/kuanfu0430/tailclip/issues/5)；不沿用前版 SPEC 的三支通用捷徑、跨 Apple 平台與強制切換認證模式方案。
+
+### 13.2 入口 A：沿用連線，新增免 QR 捷徑
+
+1. 已有設定的使用者升級後直接維持 A，不重跑連線精靈，不重新登入，不改現有 Serve、網路設定或配對 token。原 QR／舊捷徑保持有效；要使用免 QR 時只需加入新版兩支捷徑。
+2. 新捷徑沿用 Tailscale 的裝置查找，首次讓使用者選一台電腦；只驗證選定電腦的 TailClip 與授權，成功後保存單一目標。列的是候選裝置，不能假稱全部已安裝 TailClip；不逐台 HTTP 掃描。
+3. 首次選定後同次完成傳送或取回；傳送先保留 Share Sheet 輸入，沒有輸入才用目前剪貼簿，不為配對而清除內容。
+4. 日常直接使用該目標，已連線不額外固定等待；目標離線或授權失敗便停止，不自動改送其他電腦、不重送結果不明的 POST。
+5. 只保存一個目標與必要的帳號／節點辨識，與舊設定檔分開。帳號或目標身分不符時停止並提供「重設連接電腦」；這是重做首次設定，不新增日常多主機切換功能。同一份 iCloud 設定仍只代表一台目標，不引入跨裝置偏好管理。
+6. 新捷徑有不依賴限時 QR 的固定下載入口；仍只有「TailClip：傳送」「TailClip：取回」兩支。舊使用者不必安裝 B 的 App。
+
+**最小授權方案：** 新捷徑以 Serve 提供的身分核對桌面節點擁有者，只開放同一 Tailscale 使用者；不做可編輯允許清單或群組。身分無法可靠辨識、tagged 或不同使用者來源，免 QR 請求拒絕並提示，既有合法 token 流程仍可用。不得以第一個遠端請求決定擁有者。
+
+新舊認證按明確請求類型分流：舊捷徑維持原 Bearer 驗證；新版標記請求只走身分驗證，失敗不得 fallback 至 token。加入必要的客戶端標記與跨站請求防護，不開放 CORS；「同 tailnet 可連線」本身不構成讀寫權限。本機管理仍走原有獨立檢查，不能接受新版外部身分作為管理授權。
+
+### 13.3 入口 B：新手掃碼連接
+
+1. 全新啟動可選「使用現有 Tailscale」或「簡易連線」；選 B 後直接進入 B 的啟動與配對，不能先卡在 Tailscale CLI、登入或 Serve 檢查。
+2. 桌面與 iPhone App 內嵌 Tailcat library，建立應用程式加密通道，使用者不輸入地址或中繼設定。沿用上游直連／DERP 能力，不自建網路控制平面，不另做 VPN 或公開網址入口。
+3. 桌面按「連接手機」產生短效一次性 QR；iPhone App 掃碼、驗證預期桌面身分及票券，保存本次配對。首版只維護一個手機配對；本機可解除或確認取代，取代即撤銷舊授權，不做逐裝置管理清單。
+4. 配對完成後，App 只提供連線狀態、傳送、取回與重新連接。讀取手機剪貼簿由使用者操作觸發，依 iOS 正常權限處理；不承諾背景監聽或任意 App 複製後自動同步。
+5. 保存桌面／手機身分、必要會合資訊及配對憑證。正常關閉重開、Windows／Debian 重啟、App 回到前景與 Wi-Fi／行動網路切換後可重連，不再掃碼；桌面睡眠或離線時顯示未連線，不假報完成。
+6. 首次測試包需附可實際安裝的 iPhone App 與安裝方式（例如 TestFlight），不能交付只含原始碼的「新手版」。Apple 簽署／分發是交付條件，正式上架另行處理。
+
+配對票券須限時、一次使用且防重放；配對資料包含格式／API 版本，不相容時停止並提示更新。通道地址外洩不等於取得剪貼簿權限，每次操作另驗配對憑證。手機以 Keychain 保存秘密，桌面採適當憑證保護；QR、地址秘密、token 與文字不進日誌。解除／取代配對後，舊連線的後續請求也須拒絕。
+
+### 13.4 共用邏輯與切換邊界
+
+- A、B 共用目前文字驗證、1 MiB 限制、空值／錯誤模型及 Windows／Linux clipboard backend，不做 Shared Store 或第二套同步邏輯。
+- B 僅開放配對及必要的文字端點，不能把含 `/local/shutdown`、設定頁或 token 管理的整個 Agent handler 轉發出去。B 憑證與 A 憑證分開，B 不偽裝成 Serve 身分。
+- 首版一次只啟用選定入口；保存選擇，下次直接恢復。使用者主動切換時才停止原入口並啟動另一入口，不暗中 fallback。
+- 停用 B 停止 listener／重連工作，保留配對供下次恢復；只有明確解除／取代才清除 B 授權。A 的 Serve、token、舊捷徑與設定不因切換 B 被移除或重建。
+- 選 B 時既有 Serve 設定可留存，但 A 的遠端文字端點不應繼續提供服務；切回 A 重用原設定。本機通知區與管理能力在兩模式均可用，無 Tailscale 時也能管理 B。
+- 有需要的設定變更採最小相容遷移，缺少入口欄位的舊設定視為 A；不因新增 B 重寫或輪替 A 憑證。兩種入口的設定格式需能分辨，失敗不得覆蓋已有效的設定。
+- 本機 HTTP listener 維持 `127.0.0.1`，綁定前檢查 port；B 使用程序內通道，不增加 LAN／公網 HTTP listener。保留既有安裝、自啟與升級交接行為。
+
+### 13.5 實作前需驗證的兩件事
+
+**A：iPhone 原生捷徑。** 驗證 Tailscale Find Devices 能取得可信的目標 DNS／辨識資料，兩支正式成品能完成首次選擇、授權及再次執行。服務不符或原生網路錯誤可停止；不新增全網探測／錯誤恢復框架。文字只能送往選定 HTTPS 主機，測試重新導向不洩漏內容。
+
+**B：Tailcat iPhone 真機。** 先證明 library 可嵌入 App，在未安裝 Tailscale 的兩端完成加密測試請求、持久身分與重連，再接真實剪貼簿。做不到時回報具體限制，不默默改成要求裝 Tailscale 或新增其他隧道產品。
+
+官方參考：[Tailscale Shortcuts](https://tailscale.com/docs/features/mac-ios-shortcuts)、[Serve 身分](https://tailscale.com/docs/features/tailscale-serve)、[Tailcat README](https://github.com/tailscale/tailcat/blob/main/README.md)、[Tailcat SECURITY](https://github.com/tailscale/tailcat/blob/main/SECURITY.md)。2026-09-07 已閱讀；它們不構成 TailClip iPhone 整合已驗收的證據。Tailcat 提供 library 與無帳號通道，公共中繼仍是限速、best-effort；先以有限測試版驗證，標明中繼來源與故障提示。自行營運 DERP、SLA 與自動中繼遷移移至待做，不把有限測試結果寫成大眾穩定服務承諾。
+
+### 13.6 完成條件
+
+| 編號 | 驗收 |
+| --- | --- |
+| AC-M2-01 | 舊版升級後，A 的原 Serve、QR、token 與捷徑照常使用，不要求重新配置；新入口不影響此流程。 |
+| AC-M2-02 | A 新捷徑首次選一次 Windows／Debian 電腦，免 QR／貼 token，同次完成傳送或取回；下次無裝置選單，僅連所選主機。 |
+| AC-M2-03 | A 身分不符、目標離線或非 TailClip 時停止，不 fallback、不誤送；新版身分請求不能取得本機管理權。 |
+| AC-M2-04 | B 在兩端皆未安裝 Tailscale、沒有帳號／CLI／網路手動設定時，以可安裝的 App 掃碼完成雙向文字。 |
+| AC-M2-05 | B 在不同網路及直連受阻的中繼情境可用；正常重啟、前景恢復與網路切換可重連；離線正確提示，不要求每次掃碼。 |
+| AC-M2-06 | 過期／重放票券、未配對、被解除／取代的手機均不能讀寫；B 無法存取本機管理，日誌不含文字或秘密。 |
+| AC-M2-07 | A/B 明確切換、保存選擇及停止原入口有效；B 可在沒有 Tailscale 時啟動與管理，切回 A 不需重配。 |
+| AC-M2-08 | 兩入口都通過 Unicode、多行、Emoji、1 MiB／超量、空取回及 Windows 占用／Debian Wayland 回歸；失敗不清空手機剪貼簿、不背景上傳。 |
+
+## 14. M2 簡化實作計畫
+
+| 階段 | 工作 | 交付 |
+| --- | --- | --- |
+| 1：先完成 A | iPhone 最小捷徑驗證、首次單目標保存、同帳號身分授權及舊捷徑相容；調整 `shortcuts`、`internal/tailscale`、`internal/api` 與下載入口。 | 兩支免 QR 捷徑、AC-M2-01–03；此階段可先驗收，不等待 B 完成。 |
+| 2：打通 B | 在獨立 App 資料夾做 iPhone Tailcat 原型；桌面內嵌通道、最小配對與持久重連。先用隔離測試文字驗證，再接共用 backend。 | 實機可用的加密連線與配對證據；不能只用桌面測試代替 iPhone。 |
+| 3：整合雙入口 | 啟動前分流、設定保存、切換與端點隔離，完成 B App 的收發畫面、包裝及兩條使用說明。 | AC-M2-04–08、完整回歸與可安裝測試包，清楚標示 B 的測試版性質。 |
+
+沿用 Go／捷徑既有測試，新增必要的分流、拒絕、配對失敗與重啟案例。核心實機範圍為 Windows 11、Debian 13 GNOME Wayland 與 iPhone；Mac 可作 iOS 建置工具，但不因此增加 Mac 客戶端／Agent 支援工作。實作時同步 README；Debian 安裝檢查、使用者服務、重啟與真實文字收發需驗收。無圖形 session 或依賴缺少時給明確錯誤；容器測試不等於 GNOME 實機通過。實作完成後依 code-review-loop 由單一唯讀 subagent 審查，主 agent 修改後依門檻複審。
+
+### 14.1 Issue 整理與交付狀態
+
+- 已關閉 [issue #1](https://github.com/kuanfu0430/tailclip/issues/1)／[issue #4](https://github.com/kuanfu0430/tailclip/issues/4)，原文保留並附整合說明；本次採用內容以本 SPEC 第 13、14 節為準，未採用內容記於 [#5 待做功能](https://github.com/kuanfu0430/tailclip/issues/5)。
+- 關閉原 issue 的理由是「規劃已整合與收斂」，不是宣稱功能完成；不更動 #2／#3 的狀態，也不自動把其工作併入本次。
+- 前次已完成文件與 issue 整理；本次於 `codex/tailnet-shortcuts` 開始實作並做本機 commits。尚未部署或發布套件，不 push 程式碼。
+- 文件自檢包含章節／連結／需求範圍一致性與 `git diff --check`；桌面功能測試於本次執行；iPhone 實機驗收尚未進行。
+
+### 14.2 本次桌面交付界線與實作決策
+
+2026-09-07 使用者確認目前只在 Windows 作業，授權完成 Windows 可實踐的部分並註記未進行 iPhone 測試。因此本次交付為 `v0.2.0-desktop.1` 桌面候選版，不把 AC-M2-02／04／05 的手機端標為完成。
+
+- 已實作 A 的同帳號授權：新客戶端明示 `X-TailClip-Client: shortcuts-v2`，經 Serve 的 loopback 請求須帶單一 `Tailscale-User-Login`，其值與即時 CLI 狀態中的桌面 owner 相同，Host 必須符合該桌面的 ts.net 名稱。拒絕瀏覽器 Origin／Fetch Metadata、重複 header、tagged／未知 owner；失敗不 fallback 到 Bearer。舊請求維持原 Bearer 規則。本機惡意程式仍屬既有使用者 session 信任邊界。
+- 已實作 B：直接引用 Tailcat v0.6.0，固定一台桌面的一個身分與一份配對；沒有帳號服務、自營中繼或額外桌面管理層。HTTP 只掛在加密通道虛擬埠 17733；允許 health、pair、status、clipboard/text，沒有本機管理路由。
+- B QR 為 JSON `{version:1, transport:"tailcat", address, ticket, expires_at}`；五分鐘票券只存記憶體，一次成功即失效。客戶端在 Tailcat 通道 POST `/v1/pair`，傳 `{version:1,ticket}`，回應包含 `token` 與 `device_name`；後續 API 使用 Bearer。新配對成功或解除連接皆輪替憑證，保存失敗不撤銷舊配對。手機仍需實作 Keychain 與 Tailcat 私鑰保存。
+- B 的 `simple.state` 與 A 舊 token 分離，保存固定金鑰、PSK、中繼資訊及配對憑證；Windows 使用目前使用者 DPAPI，Linux 以 0600 原子取代。不保存文字；損壞設定不偷偷重建身分。公共中繼無 SLA，地址固定並不保證公共中繼永久可達。
+- 新裝 `connection_mode=choose`；舊設定缺少該欄位時維持 A。切換只啟用選定入口，保留兩邊配對；切回 A 省略新欄位，讓舊程式可讀。B／未選擇狀態不能直接用 alpha.7 讀取新欄位，退版應先切回 A。
+- Windows 使用原安裝、通知區、自啟與按需 UAC；選 B 不呼叫 Tailscale。Debian 13／Ubuntu 安裝不再強制 Tailscale，沿用 wl-clipboard 及 systemd 使用者服務；更新 binary 用同目錄暫存後替換並 restart，避免寫入執行中檔案。
+- 尚未交付：兩支新免 QR 捷徑、可安裝 iPhone App／簽署、iPhone 端測試、跨網路手機重連、Debian GNOME 真實剪貼簿／登入自啟。既有已簽署 QR 捷徑保留原檔，不冒充新功能成品。
+
+驗證紀錄：Windows `go test ./...` 已通過，含實際本機 TLS DERP＋WireGuard 的文字收發、重啟保留地址與配對、撤銷拒絕。採記憶體剪貼簿，不改寫使用者剪貼簿。Debian 13 容器 `go test -race ./...` 通過；無 Tailscale 的隔離安裝／更新腳本通過；舊捷徑 Python 測試 7 項通過，Windows `go vet ./...` 通過。設定頁初次選擇／B 提示已在瀏覽器檢視；表單與跨來源拒絕另由真實 loopback HTTP 測試。容器不能替代 GNOME／iPhone 實機。
+
+Code review loop：單一唯讀 reviewer 對 `6e99294` 以後的本次變更審查，P0=0、P1=0、P2=3、P3=0。三項全部採納修正：A 的人工 HTTPS／UAC 確認不共用二十秒網路期限，設定頁對此操作解除 write deadline（CLI／HTTPS 仍各自限時）；B 已選用時不重寫相同模式，避免儲存失敗關閉有效通道；設定頁使用最新狀態，一次性操作錯誤與即時訊息分開。新增人工確認超過 HTTP write timeout、即時訊息刷新與入口保存的回歸檢查。未拒絕 findings；依 skill 本輪無 P0 且 P1<2，不要求第二輪。手機與 GNOME 實機缺口維持未驗收。

@@ -20,12 +20,72 @@ import (
 
 type fakeTailnet struct{ status tailscale.Status }
 
+type missingTailnet struct{}
+
+func (missingTailnet) Status(context.Context) (tailscale.Status, error) {
+	return tailscale.Status{}, tailscale.ErrNotInstalled
+}
+
+func TestModeIsolationAndLegacyPreservation(t *testing.T) {
+	a, store := testAgent(t, nil)
+	token := store.Snapshot().PairingToken
+	a.tailnet = missingTailnet{}
+	for _, mode := range []string{"choose", "simple"} {
+		if err := store.Update(func(c *config.Config) error { c.ConnectionMode = mode; return nil }); err != nil {
+			t.Fatal(err)
+		}
+		w := httptest.NewRecorder()
+		a.Handler().ServeHTTP(w, localControlRequest(store))
+		if w.Code != 200 {
+			t.Fatal("沒有 Tailscale 不能管理", w.Code)
+		}
+		for _, path := range []string{"/v1/status", "/v1/clipboard/text", "/setup/old"} {
+			r := httptest.NewRequest("GET", path, nil)
+			r.Header.Set("Authorization", "Bearer "+token)
+			w := httptest.NewRecorder()
+			a.Handler().ServeHTTP(w, r)
+			if w.Code != 403 && w.Code != 404 {
+				t.Fatal("舊入口未停用", path, w.Code)
+			}
+		}
+		if err := a.configureConnection(context.Background(), "tailscale"); err == nil {
+			t.Fatal("缺少 Tailscale 卻切換成功")
+		}
+		if store.Snapshot().Mode() != mode || store.Snapshot().PairingToken != token {
+			t.Fatal("失敗切換修改設定")
+		}
+	}
+	a.tailnet = fakeTailnet{}
+	a.prepareTailnet = func(ctx context.Context) error {
+		if _, limited := ctx.Deadline(); limited {
+			t.Fatal("人工確認被套用網路逾時")
+		}
+		return nil
+	}
+	if err := a.configureConnection(context.Background(), "tailscale"); err != nil {
+		t.Fatal(err)
+	}
+	if store.Snapshot().PairingToken != token || store.Snapshot().Mode() != "tailscale" {
+		t.Fatal("切回 A 破壞配對")
+	}
+	r := httptest.NewRequest("GET", "/v1/status", nil)
+	r.Header.Set("Authorization", "Bearer "+token)
+	w := httptest.NewRecorder()
+	a.Handler().ServeHTTP(w, r)
+	if w.Code != 200 {
+		t.Fatal("舊 token 失效", w.Code)
+	}
+}
+
 func (f fakeTailnet) Status(context.Context) (tailscale.Status, error) { return f.status, nil }
 
 func testAgent(t *testing.T, logs *bytes.Buffer) (*Agent, *config.Store) {
 	t.Helper()
 	store, _, err := config.OpenStore(filepath.Join(t.TempDir(), "config.json"))
 	if err != nil {
+		t.Fatal(err)
+	}
+	if err := store.Update(func(c *config.Config) error { c.ConnectionMode = "tailscale"; return nil }); err != nil {
 		t.Fatal(err)
 	}
 	var status tailscale.Status
