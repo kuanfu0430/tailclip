@@ -9,7 +9,7 @@ TailClip 是一個以 Tailscale 私有網路連接 iPhone 與 Windows／Linux �
 目前原始碼新增雙入口桌面端，Windows 可直接建置執行，Debian 13 x86_64 GNOME Wayland 沿用 Linux 安裝包。以下舊版下載連結仍是 alpha.7，尚未發布新版到 GitHub。
 
 - **已有 Tailscale：** 升級保留既有 Serve、token 和捷徑，不必重配。新裝第一次選「使用現有 Tailscale」。新的免 QR、免貼 token 捷徑所需桌面授權已完成，但兩支新捷徑尚未製作、簽署與 iPhone 驗收；附帶的仍是既有 QR 捷徑。
-- **沒有 Tailscale：** 新裝可直接開啟設定頁，選「使用簡易連線」。桌面內嵌 Tailcat 加密通道，不需 Tailscale 帳號或 CLI；可產生五分鐘配對 QR、保存配對、解除手機連接。**iPhone App 尚未交付，因此目前不能拿手機完成此入口的收發。**
+- **沒有 Tailscale：** 新裝可直接開啟設定頁，選「使用簡易連線」。桌面內嵌 Tailcat 加密通道，不需 Tailscale 帳號或 CLI；可產生五分鐘配對 QR、保存配對、解除手機連接。**此入口的 iPhone 捷徑尚未完成，手機接入 Tailcat 的方式仍在確認，目前不能拿手機完成收發。** TailClip 不要求另裝自製 iPhone App；桌面啟動 Tailcat 並不會自動讓手機捷徑連上它。
 - 同時只啟用一個入口。切回 Tailscale 保留原配對；切回簡易連線也保留其配對。更換手機會在新手機成功配對後撤銷舊憑證。
 - 簡易連線使用 Tailcat 公共中繼，屬實驗性服務；請勿把「已保存配對」當作手機目前在線。電腦需登入並保持運作。
 
