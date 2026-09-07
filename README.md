@@ -1,21 +1,25 @@
 # TailClip
 
-TailClip 是一個以 Tailscale 私有網路連接 iPhone 與 Windows／Linux 的輕量剪貼簿工具。它不保存剪貼簿歷史，也不會在背景自動傳送每一次複製內容。
+TailClip 是一個透過 Tailscale 私有網路或臨時 HTTPS 隧道連接 iPhone 與 Windows／Linux 的輕量剪貼簿工具。它不保存剪貼簿歷史，也不會在背景自動傳送每一次複製內容。
 
 > **目前提供未簽章的 alpha 測試版。** Windows 可能顯示 SmartScreen 警告；尚未通過實機驗收的平台只代表可測試，不代表正式支援。
 
-## 雙入口桌面測試版（v0.2.0-desktop.1）
+## 雙入口測試版（v0.2.0-alpha.1）
 
-目前原始碼新增雙入口桌面端，Windows 可直接建置執行，Debian 13 x86_64 GNOME Wayland 沿用 Linux 安裝包。以下舊版下載連結仍是 alpha.7，尚未發布新版到 GitHub。
+新版提供 [Windows x64 安裝包](dist/TailClip-v0.2.0-alpha.1-windows-x64.zip) 與 Linux x64 完整安裝包，尚未發布至 GitHub。請完整解壓縮，保留附帶的 `tailclip-cloudflared-*` 檔案。
 
-- **已有 Tailscale：** 升級保留既有 Serve、token 和捷徑，不必重配。新裝第一次選「使用現有 Tailscale」。新的免 QR、免貼 token 捷徑所需桌面授權已完成，但兩支新捷徑尚未製作、簽署與 iPhone 驗收；附帶的仍是既有 QR 捷徑。
-- **沒有 Tailscale：** 新裝可直接開啟設定頁，選「使用簡易連線」。桌面內嵌 Tailcat 加密通道，不需 Tailscale 帳號或 CLI；可產生五分鐘配對 QR、保存配對、解除手機連接。**此入口的 iPhone 捷徑尚未完成，手機接入 Tailcat 的方式仍在確認，目前不能拿手機完成收發。** TailClip 不要求另裝自製 iPhone App；桌面啟動 Tailcat 並不會自動讓手機捷徑連上它。
-- 同時只啟用一個入口。切回 Tailscale 保留原配對；切回簡易連線也保留其配對。更換手機會在新手機成功配對後撤銷舊憑證。
-- 簡易連線使用 Tailcat 公共中繼，屬實驗性服務；請勿把「已保存配對」當作手機目前在線。電腦需登入並保持運作。
+- **已有 Tailscale：** 使用現有 Tailscale，保留既有 Serve、配對與「TailClip：傳送／取回」捷徑。
+- **簡易連線：** 不需 Tailscale、VPN 或自製 iPhone App。桌面選「使用簡易連線」，待臨時隧道就緒後，用 iPhone 相機掃 QR；安裝「TailClip：簡易傳送」和「TailClip：簡易取回」，再按「連接並取回」。若按鈕無法帶入資料，按頁面的複製配對資料，再執行「簡易取回」。首次網路與 iCloud Drive 權限需允許。
+- QR 五分鐘有效且只能配對一次。以後直接執行兩支簡易捷徑即可收發；捷徑只需安裝一次。
+- 電腦重開機、TailClip／隧道重啟或切換入口後，簡易連線必須掃新 QR。保持電腦運作且同一隧道程序存活時可繼續使用；睡眠、網路中斷或服務故障仍可能造成暫時中斷。
+- 同時只啟用一個入口。切換不影響原 Tailscale 配對；新的簡易配對成功後，舊簡易憑證立即失效。
+- 簡易連線透過 Cloudflare HTTPS 中繼，Cloudflare 可處理傳輸內容，並非裝置間端到端加密。Quick Tunnel 沒有可用性保證。
 
-Debian 13／Ubuntu 26.04 使用者請在 GNOME Wayland 桌面的終端執行套件內 `bash install.sh`，安裝器按需安裝 `wl-clipboard` 並建立使用者服務。首次選 Tailscale 若缺少 Serve，設定頁會先顯示實際 HTTPS 名稱與公開憑證紀錄說明；同意後執行畫面提供的 `sudo ~/.local/bin/tailclip serve-install`，再回設定頁選擇 Tailscale。已有 Serve 不必重設。
+Windows：完整解壓新版套件後雙擊 `TailClip.exe`，程式會安裝至目前使用者並開啟設定頁。不需 Go 或其他 runtime。
 
-本次完成 Windows 自動化測試及 Debian 13 容器檢查；**未進行 iPhone 端測試，也未完成 Debian GNOME 真實剪貼簿、登入自啟與跨網路驗收**。若需要退回 alpha.7，先在新版切回「使用現有 Tailscale」，結束新版後再執行舊版；不要刪除設定檔。
+Debian 13／Ubuntu 26.04：在 GNOME Wayland 桌面的終端執行套件內 `bash install.sh`，安裝器按需安裝 `wl-clipboard` 並建立使用者服務。Tailscale 入口若缺少 Serve，依設定頁指示處理；簡易連線不需要它。
+
+本次通過 Mac 原生捷徑 12 組、真實隧道重建／收發、Go race 測試、完整包校驗與 Debian 容器安裝／更新／移除；詳細範圍見 SPEC。尚未完成新版 iPhone 與 Windows／Linux 桌面實機驗收。若退回 alpha.7，先切回「使用現有 Tailscale」，結束新版後再執行舊版並保留設定檔。
 
 ## Windows 11 快速開始（已發布 alpha.7）
 
@@ -71,7 +75,7 @@ alpha.7 已通過剪貼簿交易生命週期、OS 執行緒一致性、狀態／
 - 手動觸發，不監聽所有剪貼簿變更。
 - 不建立剪貼簿歷史或離線佇列。
 - 日誌不記錄內容、token 或配對網址。
-- A 的桌面 HTTP 服務只監聽本機，透過 Tailscale Serve 提供 tailnet 內 HTTPS；不啟用 Funnel。B 的 HTTP 僅在加密通道內提供，配對秘密在 Windows 用目前使用者 DPAPI 保護，Linux 檔案權限為 0600。
+- A 的桌面 HTTP 服務只監聽本機，透過 Tailscale Serve 提供 tailnet 內 HTTPS；不啟用 Funnel。B 使用獨立 loopback 埠，由 Cloudflare 公開 HTTPS 入口轉送；傳輸必須帶配對憑證，桌面憑證只存在記憶體。iPhone 設定存在 iCloud Drive 的 `Shortcuts/TailClip-Simple/config.json`。
 - HTTPS 憑證會讓完整 `*.ts.net` 裝置名稱出現在 Certificate Transparency 紀錄；設定畫面會先顯示實際名稱並說明。
 
 ## 開發文件

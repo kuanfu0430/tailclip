@@ -1,6 +1,8 @@
 # TailClip 原生捷徑
 
-使用者安裝方式見專案 [README](../README.md)。`build.py` 是兩支原生捷徑的可重建來源，`send/spec.json` 與 `pull/spec.json` 說明各邏輯群組；手機只需要 Shortcuts 與 Tailscale。
+使用者安裝方式見專案 [README](../README.md)。`build.py` 是兩支原生捷徑的可重建來源，`send/spec.json` 與 `pull/spec.json` 說明各邏輯群組；這兩支既有捷徑使用 Shortcuts 與 Tailscale。
+
+`build_simple.py` 另建「TailClip：簡易傳送／簡易取回」，只需 Shortcuts，使用獨立 `TailClip-Simple/config.json`。兩種入口的捷徑不能混用。掃臨時隧道 QR 後按「連接並取回」，重啟隧道後重掃，不必重裝捷徑。
 
 ## 重建與簽署
 
@@ -10,6 +12,8 @@
 python3 shortcuts/build.py
 python3 shortcuts/sign.py
 python3 shortcuts/sign.py --verify
+python3 shortcuts/sign_simple.py
+python3 shortcuts/sign_simple.py --verify
 python3 -m unittest discover -s shortcuts/tests -v
 ```
 
@@ -38,3 +42,11 @@ python3 shortcuts/native_test.py run
 QA 只改 `TailClip-QA-20260905/config.json` 路徑、localhost URL 驗證、略過 iOS Tailscale ConnectIntent，並把通知換為原生 Stop and Output。其他動作與 production 同源。測試後關閉服務、刪除自己匯入的 QA 捷徑與 iCloud Shortcuts 中的 QA 資料夾；不要刪除正式 `TailClip` 設定。
 
 17 項原生案例涵蓋配對、再次執行、Unicode、Share Sheet 文字輸入、1 MiB 與錯誤分支。結果寫入 `build/shortcuts/native/report.json`。Mac 原生執行與 Go API 通過不代表 iPhone、Windows 或 Tailscale 實機通過，裝置驗收範圍見 [SPEC](../docs/SPEC.md)。
+
+## 簡易連線原生 QA
+
+先以 `go build -o build/deps/simple-testhost ./shortcuts/simple-testhost` 建置記憶體測試服務，並用 `packaging/package.py` 的 `dependency('darwin-arm64')` 下載核對過的 Mac cloudflared 到同一目錄；執行 `build/deps/simple-testhost --state build/simple-state.json`。測試會建立真正的公開臨時隧道，只連到合成記憶體剪貼簿；管理 fixture 只在隨機 loopback 埠。
+
+執行 `python3 shortcuts/simple_native_test.py prepare`，將 `build/shortcuts/simple-native/` 的兩支 QA 捷徑匯入，再執行 `python3 shortcuts/simple_native_test.py run`。正式 builder 的 URL、HTTP 與資料流保持相同；QA 只用獨立設定路徑、名稱及可斷言的通知輸出。12 組案例及平台限制寫入該目錄 `report.json`。完成後中止 testhost，移除兩支 QA 與 `TailClip-QA-Simple-20260907` 設定；程式會在成功或失敗時還原 Mac 剪貼簿。
+
+本次 Mac 系統 DNS 曾快取新臨時網址的查無結果，驗收時僅對 testhost 使用 `GODEBUG=netdns=go`，未修改系統 DNS；Shortcuts 仍直接使用正式 HTTPS 網址。Windows／Linux 發行包沒有套用此 Mac 測試環境設定。

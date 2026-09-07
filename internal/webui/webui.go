@@ -226,8 +226,8 @@ var dashboardPage = template.Must(template.New("dashboard").Parse(pageShellStart
     {{if eq .Mode "choose"}}
       <p class="foot">已有連線的人沿用 Tailscale；沒有 Tailscale 的人選簡易連線。只會啟用你選擇的入口。</p>
     {{else if eq .Mode "simple"}}
-      <p class="lead">{{if .SimplePaired}}已保存手機配對。{{else}}尚未連接手機。{{end}}按下「連接手機」後，用 TailClip iPhone App 掃碼。</p>
-      <p class="notice">桌面測試版：iPhone App 與端上測試尚未完成，不能使用 iPhone 相機或舊捷徑完成此配對。此入口使用 Tailcat 公共加密中繼，不保證服務可用率。</p>
+      <p class="lead">{{if .SimplePaired}}本次通道已配對。{{else}}尚未連接手機。{{end}}用 iPhone 相機掃描下方 QR，安裝簡易捷徑並按「連接並取回」。</p>
+      <p class="notice">臨時隧道使用 Cloudflare HTTPS 代理，不需手機 VPN。電腦或隧道重新啟動後須重掃；Cloudflare 不保證臨時通道可用率。</p>
       <form method="post" action="{{.ActionPath}}" class="stack">
         <button class="button primary" name="action" value="pair" {{if .SimplePaired}}onclick="return confirm('新手機完成配對後會取代舊手機，繼續嗎？')"{{end}}>連接手機／產生新 QR</button>
         <button class="button danger" name="action" value="revoke" onclick="return confirm('確定解除手機連接？')">解除手機連接</button>

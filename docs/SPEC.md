@@ -509,7 +509,7 @@ M2 僅執行第 13、14 節的單主機雙入口；未採用的 issue #1／#4 �
 ### 13.3 API 與邊界
 
 - 僅開放本次 session 的 health、配對頁、兩支簡易捷徑下載、`POST /v1/pair` 及原文字 status／clipboard API；不得直接代理 Agent、dashboard、`/local/*` 或 A 的配對管理。
-- B 配對 JSON：`{version:1, transport:"cloudflare", base_url:"https://<host>.trycloudflare.com/v1", ticket:"<43字元>"}`。配對回傳 `{ok:true, version:1, transport:"cloudflare", base_url, token, device_name}`。桌面 QR 與票券五分鐘有效、一次使用、防重放；未知欄位／無效版本拒絕。
+- B 配對 JSON：`{version:1, transport:"cloudflare", base_url:"https://<host>.trycloudflare.com/v1", ticket:"<43字元>"}`。配對回傳 `{ok:true, version:1, transport:"cloudflare", base_url, token, device_name}`。桌面 QR 與票券五分鐘有效、一次使用、防重放；未知欄位／無效版本拒絕；`/pair` 兼容原生捷徑 JSON 欄位輸出的數字 `1` 與字串 `"1"`。
 - 所有 B 文字 API 需要本次隨機高熵 Bearer token；B 不接受 Tailscale 身分 header 作授權，不 fallback 至 A token。HTTP Host 必須符合本次 tunnel 名稱；本機仍屬使用者 session 的信任邊界。
 - 公開 API 拒絕 Origin／Fetch Metadata 跨站請求，配對頁 GET 與下載例外；配對嘗試需限流。網頁無第三方資源，回應 no-store、no-referrer；不輸出票券、完整配對網址、token 或文字到日誌。cloudflared 原始輸出只解析網址、不寫入 TailClip 日誌。
 - 沿用 UTF-8、1 MiB、空值及剪貼簿占用處理；原生捷徑始終明確指定 URL／Dictionary action 與資料來源。配對資料不能作為一般文字傳送。
@@ -517,7 +517,7 @@ M2 僅執行第 13、14 節的單主機雙入口；未採用的 issue #1／#4 �
 
 ### 13.4 封裝與相容性
 
-- Windows／Linux 發行包附固定版本且 SHA-256 核對的官方 cloudflared、授權文件及两支新簡易捷徑；A 的原始兩支捷徑保持 byte-for-byte 不變。
+- Windows／Linux 發行包附固定版本且 SHA-256 核對的官方 cloudflared、授權文件及兩支新簡易捷徑；A 的原始兩支捷徑保持 byte-for-byte 不變。
 - cloudflared 以帶版本／內容識別的專用檔名安裝在 TailClip 專用位置，Windows 自我安裝同步複製；已有相同檔案不覆寫執行中映像。啟動前驗證 hash，檔案缺少／損壞顯示重新解壓完整發行包提示，不要求使用者自行搜尋下載。
 - CI 與本機使用同一封裝腳本，檢查每個必要檔案、版本與所有 checksum；僅本機建置交付，本次未授權 push／GitHub Release 操作。
 - 移除不再使用的 Tailcat transport、身分儲存與依賴。舊 `simple.state` 不再讀取，不需遷移秘密；B 升級後本來就須重新配對。不破壞 A 設定。
@@ -537,11 +537,18 @@ M2 僅執行第 13、14 節的單主機雙入口；未採用的 issue #1／#4 �
 
 ## 14. 本次實作與驗收紀錄
 
-- [x] 實作前改寫 SPEC，採用 Cloudflare Quick Tunnel 與兩支簡易捷徑；A 維持既有行為。
-- [ ] 替換 B transport／配對／UI 與移除 Tailcat。
-- [ ] 簡易捷徑建置、簽署、解封及原生 QA。
-- [ ] 固定依賴、Windows／Linux 封裝與安裝檢查。
-- [ ] 真實 Quick Tunnel 隔離文字測試，停止後確認端點／程序清理。
-- [ ] 單一唯讀 reviewer 進行 code review loop；修正後複審，無未解決 P0／P1／P2 後交付。
+- [x] 實作前改寫 SPEC 並提交 `d9951eb`；採用 Cloudflare Quick Tunnel 與兩支簡易捷徑，A 維持既有行為。
+- [x] 替換 B transport／配對／UI，移除 Tailcat transport、身分儲存與 Go 依賴。B 憑證只在記憶體；配對頁不含 Bearer。
+- [x] 簡易捷徑建置、Apple 簽署及完整解封核對（傳送 141 actions、取回 131 actions）；A 成品與 builder byte-for-byte 不變。11 項 Python 結構與 hash 測試通過。
+- [x] Mac 原生 QA 12 組通過：配對保存與同次取回、分享優先於舊票券、剪貼簿傳送、1 MiB、超量、Unicode／空值、重放、備援配對、空傳送、秘密保護、無效設定、撤銷。使用真正 Cloudflare HTTPS 與合成記憶體剪貼簿；Mac 剪貼簿已還原，兩支 QA 與獨立設定已清除。
+- [x] 固定 cloudflared 2026.8.3 的平台 hash／專用檔名與授權；共用腳本產出 Windows／Linux 候選包，重新開啟壓縮檔核對所有檔案、固定依賴、四支捷徑及 checksum。最終包 SOURCE.txt 追溯本次來源 commit。
+- [x] Debian 13 amd64 可丟棄容器驗證無 Tailscale 的安裝、更新、companion 複製、解除安裝及再次解除安裝；systemd／Wayland／瀏覽器以隔離 mock 模擬，不代表真實桌面登入驗收。此檢查加入 CI。
+- [x] 真實 Quick Tunnel 外部 health、配對、重放拒絕、文字往返與管理路由隔離通過；停止／重新建 tunnel 後網址與 session 更新、舊票券及 token 拒絕、新配對收發通過。測試程序與 listener 已關閉，未遺留 cloudflared。
+- [x] Go 全套測試、race 及 vet 通過；Windows 全套測試原始碼交叉編譯與 vet 通過，未把交叉編譯當作 Windows 執行。新增 companion 安裝／不覆寫／修復測試、程序清理與取消、健康驗證／異常退出、慢 body 不阻塞撤銷與錯 token 不耗合法額度測試；Windows Job Object 關閉清理測試交由原生 CI 執行。
+- [x] 單一唯讀 reviewer 三輪 code review loop：第一輪三個 P2（慢 HTTP 持鎖、錯 token 耗流量額度、分享受舊票券攔截）已修正並補回歸；第二輪與最終複審均無未解決 P0／P1／P2。
 
-此前 Windows 桌面候選實作與測試見 Git 歷史 `bf4aabc`；其 Tailcat 測試不構成 Cloudflare 驗收。既有 alpha.6 iPhone／Windows 核心傳輸成功仍有效，但不擴張為新簡易捷徑的實機證據。
+### 實測發現與限制
+
+- Quick Tunnel 新 DNS 可能晚於網址產生；外部 health 等待上限 90 秒、整體啟動 120 秒，僅成功才顯示 QR。本次 Mac 系統解析曾快取查無結果；testhost 使用 `GODEBUG=netdns=go` 完成外部驗證，未改系統 DNS，原生 Shortcuts 仍直接使用正式 HTTPS。Windows／Linux 發行包不套用該 Mac 測試設定。
+- 本次沒有實體 iPhone、Windows 通知區／UAC／重開機／Job Object 與 Linux GNOME Wayland 剪貼簿的新版實機通過證據；仍是 alpha 測試版，不能宣稱所有平台、網路與權限組合已驗收。
+- 本次只提交本機分支與安裝包，不 push、不建立 GitHub Release。此前 Windows 候選與測試見 `bf4aabc`；其 Tailcat 測試不構成 Cloudflare 驗收。既有 alpha.6 iPhone／Windows 核心傳輸成功仍有效，但不擴張為新簡易捷徑的實機證據。

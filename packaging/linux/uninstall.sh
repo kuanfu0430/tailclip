@@ -28,6 +28,12 @@ systemctl --user disable --now tailclip.service >/dev/null 2>&1 || true
 rm -f -- "${service_target}"
 systemctl --user daemon-reload
 rm -f -- "${binary_target}"
+# 僅移除 TailClip 專用且帶 hash 的隧道檔，不碰系統 cloudflared。
+for companion in "${user_home}"/.local/bin/tailclip-cloudflared-*; do
+  if [[ "$(basename -- "$companion")" =~ ^tailclip-cloudflared-[a-f0-9]{12}$ ]]; then
+    rm -f -- "$companion"
+  fi
+done
 
 case "${config_dir}" in
   */tailclip) rm -rf -- "${config_dir}" ;;
