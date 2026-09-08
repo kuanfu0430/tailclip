@@ -1,4 +1,4 @@
-TailClip v0.2.0-alpha.1 雙入口測試版
+TailClip v0.2.0-alpha.2 雙入口測試版
 =================================
 
 請完整解壓，保留 tailclip-cloudflared-* 檔案，再雙擊 TailClip.exe。
@@ -13,7 +13,9 @@ TailClip v0.2.0-alpha.1 雙入口測試版
 QR 五分鐘有效且只能用一次。重啟電腦、TailClip、隧道或切換入口後須掃新 QR。
 捷徑只需安裝一次；保持同一隧道運作即可繼續收發。
 Cloudflare HTTPS 中繼可處理內容，不是端到端加密；Quick Tunnel 沒有可用性保證。
-新版仍待 iPhone 與 Windows 實機驗收。
+從 alpha.1 升級請重新安裝兩支「簡易」捷徑並取代舊版，修正備援配對後空取回導致票券重放的問題。
+Windows 原生剪貼簿與檔案安裝檢查已通過；iPhone、通知區／UAC／登入重啟的完整實機驗收仍待完成。
+若臨時網址持續無法連線，請稍後重試或換網路；程式不會自動修改電腦 DNS。
 要退回 alpha.7，先切回「使用現有 Tailscale」再結束新版，保留設定檔。
 
 以下為既有 Tailscale 入口的使用方式：

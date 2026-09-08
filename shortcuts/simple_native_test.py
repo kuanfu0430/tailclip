@@ -37,8 +37,12 @@ class SimpleSuite(Suite):
   self.passed.append('取回與空值保留手機')
   before=self.config.read_bytes();self.clipboard('保持原文');assert '配對已失效' in self.run_shortcut('pull',json.dumps(self.pairing));assert self.config.read_bytes()==before and self.clipboard()=='保持原文';self.passed.append('重放票券保留設定與剪貼簿')
   self.renew();self.fixture('桌面原文');self.clipboard(json.dumps(self.pairing));assert '配對完成' in self.run_shortcut('send');assert self.fixture()['text']=='桌面原文';self.passed.append('備援剪貼簿配對只配對不傳送')
+  assert self.clipboard()==''
+  self.renew();self.fixture('');self.clipboard(json.dumps(self.pairing));assert '沒有文字' in self.run_shortcut('pull');assert self.clipboard()==''
+  self.fixture('空取回後再次成功');assert '已從' in self.run_shortcut('pull');assert self.clipboard()=='空取回後再次成功';self.passed.append('備援配對空取回後不重放已消耗票券')
+  self.renew();self.fixture('');self.clipboard('連結配對保留手機原文');assert '沒有文字' in self.run_shortcut('pull',json.dumps(self.pairing));assert self.clipboard()=='連結配對保留手機原文';self.passed.append('連結配對空取回保留原有文字')
   self.clipboard('');assert '沒有可傳送' in self.run_shortcut('send');self.passed.append('空傳送停止')
-  saved=json.loads(self.config.read_text());self.clipboard('保留');assert '配對資料' in self.run_shortcut('send',json.dumps(saved));assert self.fixture()['text']=='桌面原文';self.passed.append('憑證不作一般文字傳送')
+  saved=json.loads(self.config.read_text());self.fixture('桌面原文');self.clipboard('保留');assert '配對資料' in self.run_shortcut('send',json.dumps(saved));assert self.fixture()['text']=='桌面原文';self.passed.append('憑證不作一般文字傳送')
   for key,value in [('base_url','https://evil.example/v1'),('version',2),('token','')]:
    self.config.write_text(json.dumps({**saved,key:value}));self.clipboard('保留');assert '設定無效' in self.run_shortcut('pull');assert self.clipboard()=='保留'
   self.passed.append('無效設定在 HTTP 前拒絕');self.config.write_text(json.dumps(saved))

@@ -5,6 +5,9 @@ ROOT=pathlib.Path(__file__).resolve().parents[1]
 SHORTCUTS=['TailClip-Send.shortcut','TailClip-Pull.shortcut','TailClip-Simple-Send.shortcut','TailClip-Simple-Pull.shortcut']
 
 def digest(data):return hashlib.sha256(data).hexdigest()
+def write_text(path,text):
+    # 固定 UTF-8／LF，Windows 建置的 Linux 套件亦可直接使用。
+    path.write_text(text,encoding='utf-8',newline='\n')
 def dependency(platform):
     lock=json.loads((ROOT/'internal/tunnel/cloudflared.json').read_text())['assets'][platform]
     cache=ROOT/'build/deps'/lock['filename'];cache.parent.mkdir(parents=True,exist_ok=True)
@@ -30,6 +33,22 @@ def verify_files(files):
     lock=next(item for item in locks if item['filename']==companion)
     assert digest(files[companion])==lock['sha256'],'封裝隧道版本不符'
 
+def executable(name):
+    return name in ('tailclip','TailClip.exe') or name.startswith('tailclip-cloudflared-') or name.endswith('.sh')
+
+def linux_entry(info):
+    # 不沿用 Windows stat 的權限；tar 格式才是 Linux 安裝時的依據。
+    info.mode=0o755 if executable(info.name) else 0o644
+    return info
+
+def verify_linux_archive(archive):
+    files={m.name:archive.extractfile(m).read() for m in archive.getmembers()}
+    verify_files(files)
+    for m in archive.getmembers():
+        assert m.mode==(0o755 if executable(m.name) else 0o644),f'Linux 檔案權限不符：{m.name}'
+        if m.name.endswith(('.txt','.sh','.service')):
+            assert b'\r' not in files[m.name],f'Linux 文字檔必須使用 LF：{m.name}'
+
 def package(version,platform,out):
     stage=ROOT/'build/package'/platform
     if stage.exists():shutil.rmtree(stage)
@@ -41,16 +60,20 @@ def package(version,platform,out):
     if windows:flags+=' -H=windowsgui'
     subprocess.run(['go','build','-trimpath','-ldflags',flags,'-o',str(stage/binary),'./cmd/tailclip'],cwd=ROOT,env=env,check=True)
     dep=dependency(platform);shutil.copy2(dep,stage/dep.name)
-    (stage/'CLOUDFLARED.txt').write_text(dep.name+'\n')
+    write_text(stage/'CLOUDFLARED.txt',dep.name+'\n')
     shutil.copy2(ROOT/'packaging/LICENSE-cloudflared.txt',stage/'LICENSE-cloudflared.txt')
     for name in SHORTCUTS:shutil.copy2(ROOT/'shortcuts/dist'/name,stage/name)
     names=['README-Windows.txt','Start-TailClip.cmd','Uninstall-TailClip.cmd'] if windows else ['install.sh','uninstall.sh','tailclip.service']
     for name in names:shutil.copy2(ROOT/'packaging'/('windows' if windows else 'linux')/name,stage/name)
-    (stage/'VERSION.txt').write_text(version+'\n')
-    (stage/'SOURCE.txt').write_text(subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT).decode())
+    if not windows:
+        for file in stage.iterdir():
+            if file.suffix in ('.txt','.sh','.service'):
+                write_text(file,file.read_text(encoding='utf-8'))
+    write_text(stage/'VERSION.txt',version+'\n')
+    write_text(stage/'SOURCE.txt',subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT).decode())
     for file in stage.iterdir():
         if file.name==binary or file.name==dep.name or file.suffix=='.sh':file.chmod(0o755)
-    (stage/'SHA256SUMS.txt').write_text(''.join(f'{digest(p.read_bytes())}  {p.name}\n' for p in sorted(stage.iterdir())))
+    write_text(stage/'SHA256SUMS.txt',''.join(f'{digest(p.read_bytes())}  {p.name}\n' for p in sorted(stage.iterdir())))
     out.mkdir(parents=True,exist_ok=True)
     if windows:
         result=out/f'TailClip-{version}-windows-x64.zip'
@@ -60,9 +83,9 @@ def package(version,platform,out):
     else:
         result=out/f'TailClip-{version}-linux-x64.tar.gz'
         with tarfile.open(result,'w:gz') as t:
-            for p in sorted(stage.iterdir()):t.add(p,arcname=p.name)
-        with tarfile.open(result) as t:verify_files({m.name:t.extractfile(m).read() for m in t.getmembers()})
-    result.with_name(result.name+'.sha256').write_text(digest(result.read_bytes())+'  '+result.name+'\n')
+            for p in sorted(stage.iterdir()):t.add(p,arcname=p.name,filter=linux_entry)
+        with tarfile.open(result) as t:verify_linux_archive(t)
+    write_text(result.with_name(result.name+'.sha256'),digest(result.read_bytes())+'  '+result.name+'\n')
     print('已驗證發行包：',result,flush=True)
     return result
 

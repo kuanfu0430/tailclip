@@ -1,7 +1,7 @@
 # TailClip 技術與產品規格
 
-- **文件版本：** 0.5
-- **日期：** 2026-09-07
+- **文件版本：** 0.6
+- **日期：** 2026-09-08
 - **專案狀態：** v0.1-alpha 開發中；M2 單主機雙入口實作中；新增 Debian 13 GNOME Wayland 驗收範圍
 - **首版平台：** iOS 26、Windows 11 x64、Ubuntu 26.04 x86_64 GNOME Wayland
 - **傳輸：** HTTPS over Tailscale Serve
@@ -10,7 +10,7 @@
 
 ## 0. 實作進度
 
-最後更新：2026-09-07。
+最後更新：2026-09-08；Windows 後續檢證與 alpha.2 修正見 14.1。
 
 - [x] 將規格收斂為 UTF-8 純文字 M1，完成共用設定、認證、API、限流、配對與無內容日誌。
 - [x] 完成 Windows Win32 clipboard backend、自我安裝、自啟、Serve 設定、HTTPS health 與本機 QR 頁。
@@ -501,6 +501,7 @@ M2 僅執行第 13、14 節的單主機雙入口；未採用的 issue #1／#4 �
 2. cloudflared 產生 `https://<隨機名稱>.trycloudflare.com` 後，TailClip 透過外部 HTTPS health 驗證本次隨機 session 挑戰，禁止重新導向；成功後才顯示可用及五分鐘 QR。網址尚未就緒／啟動失敗提供可理解的重試訊息，不假報已連線。
 3. QR 為本次 HTTPS 下的短效配對頁網址。手機相機掃碼即可開頁；首次依序安裝兩支捷徑，再按「連接並取回」把短效配對資料交給簡易取回捷徑。可提供複製配對資料的備援操作；不把長期 Bearer 憑證放入 QR。
 4. 捷徑驗證配對資料的版本、transport、完整 HTTPS trycloudflare hostname 與票券格式，POST `/v1/pair` 交換本次 token；成功後保存 `TailClip-Simple/config.json` 並讀回驗證。只有成功才取代舊設定；同次取回可繼續執行。傳送收到配對資料時只配對，不誤送秘密。
+   備援來源為剪貼簿時，成功保存並核對 token 後清除已消耗票券，避免空取回／網路失敗後下一次誤當新配對。從連結或分享輸入配對時不清除手機原文；配對失敗亦不清除。
 5. 日常傳送以 Share Sheet 文字優先，無分享輸入時讀剪貼簿；取回只有成功且非空才改寫剪貼簿。B 完全不呼叫 Tailscale 動作。網路失敗不自動重送 POST、不清空剪貼簿。
 6. 每次新 cloudflared 程序建立新的 session、票券及 token；重開機、程序結束／崩潰、切換入口後重建均須重掃。相同程序的短暫斷線由 cloudflared 重連；不承諾不關機就永遠有效。程序退出立即清除可用狀態、QR 與舊憑證，桌面按重新連接取得新 QR。
 7. 配對與憑證僅保存在桌面記憶體，隨 tunnel 結束失效；手機保存本次設定。解除連接立即撤銷 token 與票券；產生新 QR 不先撤銷仍有效的舊配對，新票券成功使用才取代。
@@ -520,6 +521,7 @@ M2 僅執行第 13、14 節的單主機雙入口；未採用的 issue #1／#4 �
 - Windows／Linux 發行包附固定版本且 SHA-256 核對的官方 cloudflared、授權文件及兩支新簡易捷徑；A 的原始兩支捷徑保持 byte-for-byte 不變。
 - cloudflared 以帶版本／內容識別的專用檔名安裝在 TailClip 專用位置，Windows 自我安裝同步複製；已有相同檔案不覆寫執行中映像。啟動前驗證 hash，檔案缺少／損壞顯示重新解壓完整發行包提示，不要求使用者自行搜尋下載。
 - CI 與本機使用同一封裝腳本，檢查每個必要檔案、版本與所有 checksum；僅本機建置交付，本次未授權 push／GitHub Release 操作。
+- Windows 亦可封裝 Linux 成品：文字檔固定 UTF-8／LF，tar 明訂執行檔／腳本 0755、其他檔案 0644，重新開啟 tar 時須同時核對內容、權限與換行，不沿用建置主機的檔案模式。
 - 移除不再使用的 Tailcat transport、身分儲存與依賴。舊 `simple.state` 不再讀取，不需遷移秘密；B 升級後本來就須重新配對。不破壞 A 設定。
 
 ### 13.5 驗收
@@ -552,3 +554,19 @@ M2 僅執行第 13、14 節的單主機雙入口；未採用的 issue #1／#4 �
 - Quick Tunnel 新 DNS 可能晚於網址產生；外部 health 等待上限 90 秒、整體啟動 120 秒，僅成功才顯示 QR。本次 Mac 系統解析曾快取查無結果；testhost 使用 `GODEBUG=netdns=go` 完成外部驗證，未改系統 DNS，原生 Shortcuts 仍直接使用正式 HTTPS。Windows／Linux 發行包不套用該 Mac 測試設定。
 - 本次沒有實體 iPhone、Windows 通知區／UAC／重開機／Job Object 與 Linux GNOME Wayland 剪貼簿的新版實機通過證據；仍是 alpha 測試版，不能宣稱所有平台、網路與權限組合已驗收。
 - 本次只提交本機分支與安裝包，不 push、不建立 GitHub Release。此前 Windows 候選與測試見 `bf4aabc`；其 Tailcat 測試不構成 Cloudflare 驗收。既有 alpha.6 iPhone／Windows 核心傳輸成功仍有效，但不擴張為新簡易捷徑的實機證據。
+
+### 14.1 2026-09-08 Windows 檢證與 alpha.2
+
+- 依使用者授權 fetch GitHub，將本機 main 快轉至 `b9b7c7b`，再切換並追蹤昨天最後進度 `codex/quick-tunnel`／`68e2225`，同步時 ahead／behind 為 0／0、工作樹乾淨。後續修正只做本機 commit，未 push 或建立 Release。
+- 昨日 alpha.1 ZIP 的 14 個檔案、全檔 checksum、四支捷徑、固定 cloudflared 及 EXE 來源 `050ba9b`／`vcs.modified=false` 已核對。
+- Windows 原生測試發現 Job Object 清理測試錯把退出碼 0 當作程序未終止。改為先等待子程序就緒且持續執行，再確認關閉 Job 後程序在期限內退出；五次連續通過。不改產品的 Job 清理機制。
+- 使用 Go overlay 在隔離副本移除 Job kill-on-close 後，該回歸測試如預期因子程序殘留而失敗；原始碼未套用此負向對照。真實 cloudflared 隧道啟動後強制終止其測試主程序，子程序及其 listener 均消失。
+- 單一 reviewer 第一輪 P0=0、P1=0、P2=2、P3=0，全部接受：修正 Windows 封裝 Linux 的 CRLF／執行權限，及簡易捷徑備援配對後的已消耗票券重放。兩支簡易捷徑已透過 Mac mini 的 Apple CLI 重簽並解封驗證（145／135 actions）；A 的 builder／兩支成品保持原樣。
+- Windows `go test -count=1 ./...`、`go vet ./...` 通過；新增真實發行包檔案安裝測試，涵蓋中文／空白路徑、自我複製、companion SHA-256、重複安裝不覆寫依賴與安裝後 EXE 執行。此測試不等同通知區、UAC、自啟或完整解除安裝實機驗收。
+- 在獨立非互動 Window Station 執行原生剪貼簿測試：100 輪 Unicode 讀寫、90 個並行操作、占用取消／恢復與持續占用上限全部通過；未改寫使用者互動桌面的剪貼簿。隔離方式依 Microsoft 的 Window Station／Desktop API，沒有修改系統權限。
+- Debian 13 容器 `go test -race ./...` 與無 Tailscale 安裝／更新／移除腳本通過；12 項捷徑 Python 測試、2 項跨平台封裝回歸通過。格式檢查按 Git 文字內容的 LF 核對，避免將 Windows checkout 的 CRLF 視為程式格式差異。
+- Windows 實網測試發現新 trycloudflare 名稱在首次查詢的 DNS 伺服器出現負向快取，90 秒內可能持續回覆 NXDOMAIN；其他尚未快取的 resolver 可解析。原程式正確拒絕顯示尚未驗證的 QR 並清理隧道。隔離診斷使用指定 DNS，未修改 Windows DNS、既有 TailClip 配對、自啟或 Tailscale Serve；不能把指定 DNS 的診斷結果視為本機預設網路已通過。
+- Windows 指定 DNS 的真實 Cloudflare HTTPS／記憶體剪貼簿測試通過：外部 health session 驗證、配對、重放拒絕、Unicode 多行、1 MiB／超量、錯 token、管理路由隔離、空取回、撤銷及重新配對。這是 Go API 執行結果，不等同 iPhone 捷徑執行。
+- 第二輪 reviewer 找到新增原生空值案例未重設後續憑證案例 fixture 的 P2，已補上案例自己的初始內容；沒有拒絕任何 finding。
+- 第三輪聚焦複審為 `No findings`，最終未解決 P0／P1／P2／P3 均為 0；新增原生捷徑案例未執行的驗收缺口仍保留，不以 code review 代替實機結果。
+- 本次 Mac 僅完成重簽與解封內容核對；透過 SSH 的 System Events 查詢逾時，未取得原生匯入／UI 操作條件，新增兩個捷徑原生案例尚未執行。iPhone、Windows 通知區／UAC／登入重開機與 GNOME Wayland 完整矩陣仍未驗收。

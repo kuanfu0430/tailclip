@@ -4,6 +4,8 @@
 
 `build_simple.py` 另建「TailClip：簡易傳送／簡易取回」，只需 Shortcuts，使用獨立 `TailClip-Simple/config.json`。兩種入口的捷徑不能混用。掃臨時隧道 QR 後按「連接並取回」，重啟隧道後重掃，不必重裝捷徑。
 
+alpha.2 修正備援剪貼簿票券在成功保存後未清除的問題，避免同次取回為空時下一次重放票券；從 alpha.1 升級須取代兩支簡易捷徑。連結／分享配對不清除原有文字，配對失敗及日常取回失敗亦保留剪貼簿。
+
 ## 重建與簽署
 
 在專案根目錄，以 macOS 執行：
@@ -47,6 +49,6 @@ QA 只改 `TailClip-QA-20260905/config.json` 路徑、localhost URL 驗證、略
 
 先以 `go build -o build/deps/simple-testhost ./shortcuts/simple-testhost` 建置記憶體測試服務，並用 `packaging/package.py` 的 `dependency('darwin-arm64')` 下載核對過的 Mac cloudflared 到同一目錄；執行 `build/deps/simple-testhost --state build/simple-state.json`。測試會建立真正的公開臨時隧道，只連到合成記憶體剪貼簿；管理 fixture 只在隨機 loopback 埠。
 
-執行 `python3 shortcuts/simple_native_test.py prepare`，將 `build/shortcuts/simple-native/` 的兩支 QA 捷徑匯入，再執行 `python3 shortcuts/simple_native_test.py run`。正式 builder 的 URL、HTTP 與資料流保持相同；QA 只用獨立設定路徑、名稱及可斷言的通知輸出。12 組案例及平台限制寫入該目錄 `report.json`。完成後中止 testhost，移除兩支 QA 與 `TailClip-QA-Simple-20260907` 設定；程式會在成功或失敗時還原 Mac 剪貼簿。
+執行 `python3 shortcuts/simple_native_test.py prepare`，將 `build/shortcuts/simple-native/` 的兩支 QA 捷徑匯入，再執行 `python3 shortcuts/simple_native_test.py run`。正式 builder 的 URL、HTTP 與資料流保持相同；QA 只用獨立設定路徑、名稱及可斷言的通知輸出。14 組案例及平台限制寫入該目錄 `report.json`；alpha.2 新增「備援配對空取回後再次執行」及「連結配對空取回保留文字」，兩項尚待原生執行，不沿用 alpha.1 的 12 組通過紀錄。完成後中止 testhost，移除兩支 QA 與 `TailClip-QA-Simple-20260907` 設定；程式會在成功或失敗時還原 Mac 剪貼簿。
 
 本次 Mac 系統 DNS 曾快取新臨時網址的查無結果，驗收時僅對 testhost 使用 `GODEBUG=netdns=go`，未修改系統 DNS；Shortcuts 仍直接使用正式 HTTPS 網址。Windows／Linux 發行包沒有套用此 Mac 測試環境設定。

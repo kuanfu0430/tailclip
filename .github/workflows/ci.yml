@@ -28,6 +28,8 @@ jobs:
         run: go vet ./...
       - name: 捷徑來源與成品一致性
         run: python -m unittest discover -s shortcuts/tests -v
+      - name: 跨平台封裝權限與換行
+        run: python -m unittest discover -s packaging/tests -v
       - name: 單元與整合測試
         run: go test ./...
       - name: Windows 原生剪貼簿回歸

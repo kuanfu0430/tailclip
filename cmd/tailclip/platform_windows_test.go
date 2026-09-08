@@ -6,11 +6,14 @@ import (
 	"context"
 	"errors"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/kuanfu0430/tailclip/internal/tailscale"
+	"github.com/kuanfu0430/tailclip/internal/tunnel"
 )
 
 type fakeWindowsTailscaleClient struct {
@@ -240,5 +243,45 @@ func TestAutostartCommandQuotesExecutablePath(t *testing.T) {
 	want := `"C:\Users\Tester Name\AppData\Local\TailClip\TailClip.exe" agent`
 	if got != want {
 		t.Fatalf("autostartCommand()=%q want=%q", got, want)
+	}
+}
+
+// 使用完整解壓的真實發行包，驗證原生檔案安裝與 EXE 可執行性，不修改使用者設定。
+func TestWindowsPackagedInstallIntegration(t *testing.T) {
+	directory := os.Getenv("TAILCLIP_WINDOWS_PACKAGE_DIR")
+	if directory == "" {
+		t.Skip("需要 TAILCLIP_WINDOWS_PACKAGE_DIR 指向完整發行包")
+	}
+	source := filepath.Join(directory, "TailClip.exe")
+	target := filepath.Join(t.TempDir(), "中文 使用者", "TailClip.exe")
+	if err := installWindowsFiles(source, target); err != nil {
+		t.Fatal(err)
+	}
+	if same, err := sameFileContent(source, target); err != nil || !same {
+		t.Fatalf("安裝後 EXE 內容不符：%v", err)
+	}
+	companion, err := tunnel.CurrentBinary()
+	if err != nil {
+		t.Fatal(err)
+	}
+	dependency := filepath.Join(filepath.Dir(target), companion.Filename)
+	if err := tunnel.Verify(dependency); err != nil {
+		t.Fatal(err)
+	}
+	before, err := os.Stat(dependency)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := installWindowsFiles(source, target); err != nil {
+		t.Fatal(err)
+	}
+	after, err := os.Stat(dependency)
+	if err != nil || !os.SameFile(before, after) {
+		t.Fatalf("再次安裝不應重寫有效 companion：%v", err)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if output, err := exec.CommandContext(ctx, target, "version").CombinedOutput(); err != nil || len(output) == 0 {
+		t.Fatalf("安裝後 EXE 無法正常執行：%v", err)
 	}
 }

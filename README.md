@@ -4,13 +4,14 @@ TailClip 是一個透過 Tailscale 私有網路或臨時 HTTPS 隧道連接 iPho
 
 > **目前提供未簽章的 alpha 測試版。** Windows 可能顯示 SmartScreen 警告；尚未通過實機驗收的平台只代表可測試，不代表正式支援。
 
-## 雙入口測試版（v0.2.0-alpha.1）
+## 雙入口測試版（v0.2.0-alpha.2）
 
-新版提供 [Windows x64 安裝包](dist/TailClip-v0.2.0-alpha.1-windows-x64.zip) 與 Linux x64 完整安裝包，尚未發布至 GitHub。請完整解壓縮，保留附帶的 `tailclip-cloudflared-*` 檔案。
+新版提供 [Windows x64 安裝包](dist/TailClip-v0.2.0-alpha.2-windows-x64.zip) 與 Linux x64 完整安裝包，尚未建立新版 GitHub Release。請完整解壓縮，保留附帶的 `tailclip-cloudflared-*` 檔案。
 
 - **已有 Tailscale：** 使用現有 Tailscale，保留既有 Serve、配對與「TailClip：傳送／取回」捷徑。
 - **簡易連線：** 不需 Tailscale、VPN 或自製 iPhone App。桌面選「使用簡易連線」，待臨時隧道就緒後，用 iPhone 相機掃 QR；安裝「TailClip：簡易傳送」和「TailClip：簡易取回」，再按「連接並取回」。若按鈕無法帶入資料，按頁面的複製配對資料，再執行「簡易取回」。首次網路與 iCloud Drive 權限需允許。
 - QR 五分鐘有效且只能配對一次。以後直接執行兩支簡易捷徑即可收發；捷徑只需安裝一次。
+- 從 alpha.1 升級時，請從新 QR 頁重新安裝兩支「簡易」捷徑並選擇取代。alpha.2 修正備援配對後首次取回空白時，下一次反覆要求配對的問題；成功保存後只清除剛使用的剪貼簿配對資料，連結配對及日常傳輸失敗仍保留原有文字。既有 Tailscale 捷徑不需重裝。
 - 電腦重開機、TailClip／隧道重啟或切換入口後，簡易連線必須掃新 QR。保持電腦運作且同一隧道程序存活時可繼續使用；睡眠、網路中斷或服務故障仍可能造成暫時中斷。
 - 同時只啟用一個入口。切換不影響原 Tailscale 配對；新的簡易配對成功後，舊簡易憑證立即失效。
 - 簡易連線透過 Cloudflare HTTPS 中繼，Cloudflare 可處理傳輸內容，並非裝置間端到端加密。Quick Tunnel 沒有可用性保證。
@@ -19,7 +20,9 @@ Windows：完整解壓新版套件後雙擊 `TailClip.exe`，程式會安裝至�
 
 Debian 13／Ubuntu 26.04：在 GNOME Wayland 桌面的終端執行套件內 `bash install.sh`，安裝器按需安裝 `wl-clipboard` 並建立使用者服務。Tailscale 入口若缺少 Serve，依設定頁指示處理；簡易連線不需要它。
 
-本次通過 Mac 原生捷徑 12 組、真實隧道重建／收發、Go race 測試、完整包校驗與 Debian 容器安裝／更新／移除；詳細範圍見 SPEC。尚未完成新版 iPhone 與 Windows／Linux 桌面實機驗收。若退回 alpha.7，先切回「使用現有 Tailscale」，結束新版後再執行舊版並保留設定檔。
+alpha.2 已通過 Windows Go 測試、獨立工作站中的原生剪貼簿壓力測試、真實 EXE／cloudflared 檔案安裝檢查，以及 Debian 容器回歸。修正版簡易捷徑已在 Mac 完成 Apple 簽署與內容核對；alpha.1 的 Mac 原生 12 組紀錄保留，alpha.2 新增案例尚待原生執行。iPhone、Windows 通知區／UAC／登入重啟及 Linux GNOME 桌面的完整驗收仍未完成，詳細範圍見 SPEC。若退回 alpha.7，先切回「使用現有 Tailscale」，結束新版後再執行舊版並保留設定檔。
+
+若簡易連線持續顯示「臨時網址尚無法連線」，可能是目前網路暫時快取了新網址不存在的結果；可稍後重試或換網路。這次 Windows 檢證遇到此情況，程式未自動變更電腦 DNS。
 
 ## Windows 11 快速開始（已發布 alpha.7）
 

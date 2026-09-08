@@ -31,6 +31,19 @@ class SimpleTests(unittest.TestCase):
    name=f'TailClip-Simple-{d.title()}.shortcut';raw=plistlib.dumps(build_simple(d),fmt=plistlib.FMT_BINARY,sort_keys=True)
    self.assertEqual(hashlib.sha256(raw).hexdigest(),manifest[name]['source_sha256'])
    self.assertEqual(hashlib.sha256((root/'dist'/name).read_bytes()).hexdigest(),manifest[name]['artifact_sha256'])
+ def test_consumed_clipboard_ticket_cleared_only_after_verified_pairing(self):
+  for direction in ('send','pull'):
+   w=SimpleWorkflow(direction);actions=build_simple(direction)['WFWorkflowActions']
+   index={a['WFWorkflowActionParameters']['UUID']:i for i,a in enumerate(actions)}
+   gate=actions[index[w.uid('clear-pairing-clipboard')]]['WFWorkflowActionParameters']
+   self.assertEqual(gate['WFCondition'],101)
+   self.assertIn('ExtensionInput',str(gate['WFInput']))
+   clear=actions[index[w.uid('clear-consumed-ticket')]]
+   self.assertEqual(clear['WFWorkflowActionIdentifier'],'is.workflow.actions.setclipboard')
+   self.assertTrue(clear['WFWorkflowActionParameters']['WFLocalOnly'])
+   self.assertLess(index[w.uid('readback-match')],index[w.uid('clear-pairing-clipboard')])
+   self.assertLess(index[w.uid('readback-failed/end')],index[w.uid('clear-consumed-ticket')])
+   self.assertLess(index[w.uid('clear-consumed-ticket')],index[w.uid('transfer/request')])
  def test_boundary_and_isolation(self):
   pattern=BASE_PATTERN.replace(r'\z',r'\Z');good='https://quiet-river.trycloudflare.com/v1'
   self.assertIsNotNone(re.fullmatch(pattern,good))

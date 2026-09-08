@@ -66,6 +66,12 @@ def build_simple(direction, *, config_path=CONFIG_PATH, base_pattern=BASE_PATTER
     # 正則全字比對讀回 token；token 已限為 base64url，不含 regex 字元。
     matches=w.action('text.match','readback-match',text=rich(read_token),WFMatchTextPattern=rich(r'\A',token,r'\z'),WFMatchTextCaseSensitive=True,ShowWhenRun=False)
     w.begin('readback-failed',matches,101);w.stop('readback-failed','設定讀回不符，請回電腦產生新 QR 後重試。');w.end('readback-failed')
+    # 僅清除成功備援配對所使用的剪貼簿票券，避免空取回後再次交換已消耗票券。
+    # 從連結／分享輸入配對時保留手機原有文字；失敗配對亦不修改剪貼簿。
+    w.begin('clear-pairing-clipboard',share,101)
+    empty=w.text('consumed-ticket','')
+    w.action('setclipboard','clear-consumed-ticket',WFInput=empty,WFLocalOnly=True)
+    w.end('clear-pairing-clipboard')
     if direction=='send':w.stop('paired','配對完成。請複製文字後執行「TailClip：簡易傳送」。')
     w.text('paired-token',token)
     w.otherwise('pair')
