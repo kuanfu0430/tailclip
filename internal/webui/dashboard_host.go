@@ -133,8 +133,8 @@ func (h *DashboardHost) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		action := r.PostForm.Get("action")
-		if action == "tailscale" {
-			// 本機原生確認／UAC 由使用者決定閱讀時間；各 CLI／HTTP 呼叫仍各有網路逾時。
+		if action == "tailscale" || action == "simple" || action == "pair" {
+			// 本機原生確認／UAC 與隧道 DNS 就緒可能超過一般回應期限；操作本身各有逾時。
 			_ = http.NewResponseController(w).SetWriteDeadline(time.Time{})
 		}
 		err := entry.data.Configure(r.Context(), action)

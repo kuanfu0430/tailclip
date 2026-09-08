@@ -25,6 +25,11 @@ esac
 [[ -n "${XDG_RUNTIME_DIR:-}" ]] || fail "找不到 XDG_RUNTIME_DIR；請從桌面使用者 session 執行。"
 [[ -x "${binary_source}" ]] || fail "release 目錄缺少可執行的 tailclip。"
 [[ -r "${service_source}" ]] || fail "release 目錄缺少 tailclip.service。"
+[[ -r "${script_dir}/CLOUDFLARED.txt" ]] || fail "release 目錄缺少 CLOUDFLARED.txt。"
+companion="$(cat "${script_dir}/CLOUDFLARED.txt")"
+[[ "$companion" =~ ^tailclip-cloudflared-[a-f0-9]{12}$ ]] || fail "隧道檔名無效。"
+[[ -x "${script_dir}/${companion}" ]] || fail "release 目錄缺少隧道程式。"
+
 command -v systemctl >/dev/null || fail "找不到 systemctl。"
 command -v curl >/dev/null || fail "找不到 curl。"
 command -v ss >/dev/null || fail "找不到 ss；請先安裝 iproute2。"
@@ -58,6 +63,8 @@ binary_target="${user_home}/.local/bin/tailclip"
 service_target="${user_home}/.config/systemd/user/tailclip.service"
 
 install -d -m 0755 "$(dirname -- "${binary_target}")"
+install -m 0755 "${script_dir}/${companion}" "$(dirname -- "${binary_target}")/${companion}.new"
+mv -f -- "$(dirname -- "${binary_target}")/${companion}.new" "$(dirname -- "${binary_target}")/${companion}"
 install -m 0755 "${binary_source}" "${binary_target}.new"
 mv -f -- "${binary_target}.new" "${binary_target}"
 install -d -m 0755 "$(dirname -- "${service_target}")"
@@ -78,4 +85,4 @@ curl --silent --fail --max-time 1 "http://127.0.0.1:${agent_port}/v1/health" >/d
 
 
 "${binary_target}" open || fail "Agent 已安裝，但無法開啟本機設定頁。請執行 ${binary_target} open。"
-printf '\nTailClip 已安裝。請在設定頁選擇連線方式；簡易連線的 iPhone App 尚待交付。\n'
+printf '\nTailClip 已安裝。請在設定頁選擇連線方式；簡易連線請用 iPhone 相機掃 QR，安裝簡易捷徑後按「連接並取回」。\n'

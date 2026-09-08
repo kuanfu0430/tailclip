@@ -1,12 +1,22 @@
-TailClip v0.2.0-desktop.1 桌面測試版
+TailClip v0.2.0-alpha.2 雙入口測試版
 =================================
 
-新裝可先選擇連線方式，不必先安裝 Tailscale。
-已有設定會沿用原 Tailscale、Serve、token 與捷徑，不需重新配置。
-簡易連線使用 Tailcat 公共加密中繼，可在桌面建立／撤銷配對。
-iPhone App 尚未交付；新的免 QR 捷徑也尚未製作／簽署，本次未進行 iPhone 端測試。
-包內兩支捷徑仍是下列既有 QR 入口。請勿用 iPhone 相機／舊捷徑掃簡易連線 QR。
-要退回 alpha.7，先在新版切回「使用現有 Tailscale」再結束新版，保留設定檔。
+請完整解壓，保留 tailclip-cloudflared-* 檔案，再雙擊 TailClip.exe。
+已有 Tailscale 的設定、Serve、配對和捷徑保持不變。
+
+簡易連線不需 Tailscale、VPN 或 iPhone App：
+1. 桌面選「使用簡易連線」，等隧道就緒後用 iPhone 相機掃 QR。
+2. 安裝「TailClip：簡易傳送」與「TailClip：簡易取回」。
+3. 按「連接並取回」；若未帶入資料，複製配對資料後執行「簡易取回」。
+4. 首次允許網路與 iCloud Drive 權限。以後直接執行兩支簡易捷徑。
+
+QR 五分鐘有效且只能用一次。重啟電腦、TailClip、隧道或切換入口後須掃新 QR。
+捷徑只需安裝一次；保持同一隧道運作即可繼續收發。
+Cloudflare HTTPS 中繼可處理內容，不是端到端加密；Quick Tunnel 沒有可用性保證。
+從 alpha.1 升級請重新安裝兩支「簡易」捷徑並取代舊版，修正備援配對後空取回導致票券重放的問題。
+Windows 原生剪貼簿與檔案安裝檢查已通過；iPhone、通知區／UAC／登入重啟的完整實機驗收仍待完成。
+若臨時網址持續無法連線，請稍後重試或換網路；程式不會自動修改電腦 DNS。
+要退回 alpha.7，先切回「使用現有 Tailscale」再結束新版，保留設定檔。
 
 以下為既有 Tailscale 入口的使用方式：
 TailClip v0.1-alpha Windows 11 x64 測試版

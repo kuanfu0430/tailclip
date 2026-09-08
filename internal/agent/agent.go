@@ -10,7 +10,6 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
-	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -256,10 +255,12 @@ func (a *Agent) connectionData() webui.DashboardData {
 	defer a.modeMu.Unlock()
 	if a.simple != nil {
 		data.SimplePaired = a.simple.Paired()
+		if !a.simple.Ready() {
+			data.ConnectionMessage = "臨時隧道尚未就緒或已結束，請按重新連接並掃描新 QR。"
+		}
 	}
 	if a.simplePairing.Ticket != "" && a.simple != nil && a.simple.PairingPending() && time.Now().Before(a.simplePairing.ExpiresAt) {
-		payload, _ := json.Marshal(a.simplePairing)
-		data.PairingURL, data.ExpiresAt = string(payload), a.simplePairing.ExpiresAt
+		data.PairingURL, data.ExpiresAt = a.simplePairing.URL(), a.simplePairing.ExpiresAt
 	}
 	return data
 }
@@ -292,15 +293,11 @@ func (a *Agent) configureConnection(ctx context.Context, action string) error {
 		}
 		a.simplePairing = simple.Pairing{}
 	case "simple", "pair":
-		ctx, cancel := context.WithTimeout(ctx, 20*time.Second)
+		ctx, cancel := context.WithTimeout(ctx, 120*time.Second)
 		defer cancel()
 		if a.simple == nil {
 			cfg := a.store.Snapshot()
-			service, err := simple.Open(filepath.Join(filepath.Dir(a.store.Path()), "simple.state"), cfg.DeviceName, a.clipboard)
-			if err != nil {
-				return errors.New("無法讀取或保存簡易連線設定")
-			}
-			a.simple = service
+			a.simple = simple.New(cfg.DeviceName, a.clipboard)
 		}
 		if err := a.simple.Start(ctx); err != nil {
 			return err
@@ -312,7 +309,7 @@ func (a *Agent) configureConnection(ctx context.Context, action string) error {
 			}
 		}
 		a.simple.SetActive(true)
-		if action == "pair" {
+		if action == "pair" || (!a.simple.Paired() && !a.simple.PairingPending()) {
 			pairing, err := a.simple.NewPairing()
 			if err != nil {
 				return err

@@ -18,6 +18,7 @@ import (
 
 	"github.com/kuanfu0430/tailclip/internal/config"
 	"github.com/kuanfu0430/tailclip/internal/tailscale"
+	"github.com/kuanfu0430/tailclip/internal/tunnel"
 	"golang.org/x/sys/windows"
 	"golang.org/x/sys/windows/registry"
 )
@@ -56,7 +57,7 @@ type windowsInstaller struct {
 func defaultWindowsInstaller() windowsInstaller {
 	return windowsInstaller{
 		installPath:     windowsInstallPath,
-		copyExecutable:  copyExecutable,
+		copyExecutable:  installWindowsFiles,
 		ensureAutostart: ensureAutostart,
 		ensureAgent:     ensureAgent,
 		newTailscale: func() (windowsTailscaleClient, error) {
@@ -75,6 +76,13 @@ func defaultWindowsInstaller() windowsInstaller {
 			return cfg.Mode() != "tailscale", err
 		},
 	}
+}
+
+func installWindowsFiles(source, target string) error {
+	if err := tunnel.InstallCompanion(filepath.Dir(source), filepath.Dir(target)); err != nil {
+		return err
+	}
+	return copyExecutable(source, target)
 }
 
 func defaultAction(ctx context.Context, executable string) error {
