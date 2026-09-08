@@ -569,4 +569,6 @@ M2 僅執行第 13、14 節的單主機雙入口；未採用的 issue #1／#4 �
 - Windows 指定 DNS 的真實 Cloudflare HTTPS／記憶體剪貼簿測試通過：外部 health session 驗證、配對、重放拒絕、Unicode 多行、1 MiB／超量、錯 token、管理路由隔離、空取回、撤銷及重新配對。這是 Go API 執行結果，不等同 iPhone 捷徑執行。
 - 第二輪 reviewer 找到新增原生空值案例未重設後續憑證案例 fixture 的 P2，已補上案例自己的初始內容；沒有拒絕任何 finding。
 - 第三輪聚焦複審為 `No findings`，最終未解決 P0／P1／P2／P3 均為 0；新增原生捷徑案例未執行的驗收缺口仍保留，不以 code review 代替實機結果。
+- alpha.2 Windows／Linux 最終包由乾淨來源 `11837941d90a8a5c64a9e860cbb173a9f687053a` 建置，兩個 binary 均為 `vcs.modified=false`。Windows ZIP 14 檔／companion／四支捷徑校驗通過，最終 EXE 在中文空白安裝路徑可執行；Linux tar 在 Debian 13 解壓後全檔 checksum、0755 執行權限、TailClip 與 cloudflared 版本指令通過。Windows ZIP SHA-256：`7c25fbab8f0223789024932d9fabe8b616d124bb6957fc1b90afec61800947b0`。
+- Mac 簽署暫存已按本次檔案清單移除；Windows 測試的臨時隧道／程序已停止，既有使用者安裝保持運作。兩個平台交付包保留於 dist，Git 仍只追蹤 Windows ZIP 與 checksum。
 - 本次 Mac 僅完成重簽與解封內容核對；透過 SSH 的 System Events 查詢逾時，未取得原生匯入／UI 操作條件，新增兩個捷徑原生案例尚未執行。iPhone、Windows 通知區／UAC／登入重開機與 GNOME Wayland 完整矩陣仍未驗收。
