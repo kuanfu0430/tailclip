@@ -16,7 +16,7 @@ func TestCompanionInstallReuseRepair(t *testing.T) {
 	data := []byte("合成隧道執行檔")
 	sum := sha256.Sum256(data)
 	sha := hex.EncodeToString(sum[:])
-	name := "tailclip-cloudflared-" + sha[:12]
+	name := "tailblink-cloudflared-" + sha[:12]
 	manifest, _ = json.Marshal(map[string]any{"assets": map[string]Binary{runtime.GOOS + "-" + runtime.GOARCH: {Filename: name, SHA256: sha}}})
 	src, dst := t.TempDir(), t.TempDir()
 	source, target := filepath.Join(src, name), filepath.Join(dst, name)

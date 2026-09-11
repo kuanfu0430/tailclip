@@ -33,7 +33,7 @@ func TestStatusAndBaseURL(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := BaseURL(status); got != "https://work.example.ts.net/tailclip/v1" {
+	if got := BaseURL(status); got != "https://work.example.ts.net/tailblink/v1" {
 		t.Fatalf("base URL = %s", got)
 	}
 }
@@ -68,7 +68,7 @@ func TestEnsureServePreservesExistingRoot(t *testing.T) {
 	if err != nil || !changed {
 		t.Fatalf("changed=%v err=%v", changed, err)
 	}
-	want := []string{"serve", "--bg", "--yes", "--https=443", "--set-path=/tailclip", AgentTarget}
+	want := []string{"serve", "--bg", "--yes", "--https=443", "--set-path=/tailblink", AgentTarget}
 	if len(runner.calls) != 2 || !reflect.DeepEqual(runner.calls[1], want) {
 		t.Fatalf("calls=%v", runner.calls)
 	}
@@ -80,14 +80,14 @@ func TestEnsureServePreservesExistingRoot(t *testing.T) {
 }
 
 func TestEnsureServeIsIdempotentAndRejectsConflict(t *testing.T) {
-	ours := []byte(`{"Web":{"work.example.ts.net:443":{"Handlers":{"/tailclip":{"Proxy":"http://127.0.0.1:17733/"}}}}}`)
+	ours := []byte(`{"Web":{"work.example.ts.net:443":{"Handlers":{"/tailblink":{"Proxy":"http://127.0.0.1:17733/"}}}}}`)
 	runner := &fakeRunner{outputs: [][]byte{ours}}
 	changed, err := NewWithRunner(runner).EnsureServe(context.Background())
 	if err != nil || changed || len(runner.calls) != 1 {
 		t.Fatalf("changed=%v err=%v calls=%v", changed, err, runner.calls)
 	}
 
-	other := []byte(`{"Web":{"work.example.ts.net:443":{"Handlers":{"/tailclip":{"Proxy":"http://127.0.0.1:9999"}}}}}`)
+	other := []byte(`{"Web":{"work.example.ts.net:443":{"Handlers":{"/tailblink":{"Proxy":"http://127.0.0.1:9999"}}}}}`)
 	runner = &fakeRunner{outputs: [][]byte{other}}
 	changed, err = NewWithRunner(runner).EnsureServe(context.Background())
 	if changed || !errors.Is(err, ErrServeConflict) || len(runner.calls) != 1 {
@@ -96,13 +96,13 @@ func TestEnsureServeIsIdempotentAndRejectsConflict(t *testing.T) {
 }
 
 func TestRemoveServeOnlyRemovesOurMapping(t *testing.T) {
-	ours := []byte(`{"Web":{"work.example.ts.net:443":{"Handlers":{"/tailclip":{"Proxy":"http://127.0.0.1:17733"}}}}}`)
+	ours := []byte(`{"Web":{"work.example.ts.net:443":{"Handlers":{"/tailblink":{"Proxy":"http://127.0.0.1:17733"}}}}}`)
 	runner := &fakeRunner{outputs: [][]byte{ours, nil}}
 	changed, err := NewWithRunner(runner).RemoveServe(context.Background())
 	if err != nil || !changed {
 		t.Fatalf("changed=%v err=%v", changed, err)
 	}
-	want := []string{"serve", "--yes", "--https=443", "--set-path=/tailclip", "off"}
+	want := []string{"serve", "--yes", "--https=443", "--set-path=/tailblink", "off"}
 	if !reflect.DeepEqual(runner.calls[1], want) {
 		t.Fatalf("call=%v", runner.calls[1])
 	}

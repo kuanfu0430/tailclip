@@ -19,7 +19,7 @@ func DefaultPath() (string, error) {
 		if base == "" {
 			return "", errors.New("找不到 LOCALAPPDATA")
 		}
-		return filepath.Join(base, "TailClip", "tailclip.log"), nil
+		return filepath.Join(base, "TailBlink", "tailblink.log"), nil
 	}
 	base := os.Getenv("XDG_STATE_HOME")
 	if base == "" {
@@ -29,7 +29,7 @@ func DefaultPath() (string, error) {
 		}
 		base = filepath.Join(home, ".local", "state")
 	}
-	return filepath.Join(base, "tailclip", "tailclip.log"), nil
+	return filepath.Join(base, "tailblink", "tailblink.log"), nil
 }
 
 func Open(path string) (*slog.Logger, io.Closer, error) {

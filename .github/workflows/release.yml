@@ -23,8 +23,8 @@ jobs:
           go vet ./...
           go test -race ./...
           python3 -m unittest discover -s shortcuts/tests -v
-          test -s shortcuts/dist/TailClip-Send.shortcut
-          test -s shortcuts/dist/TailClip-Pull.shortcut
+          test -s shortcuts/dist/TailBlink-Send.shortcut
+          test -s shortcuts/dist/TailBlink-Pull.shortcut
       - name: 建置與驗證發行包
         run: |
           python3 packaging/package.py --version "${GITHUB_REF_NAME}" --output release-output
@@ -34,4 +34,4 @@ jobs:
       - name: 建立 GitHub alpha release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "${GITHUB_REF_NAME}" release-output/* --prerelease --generate-notes --title "TailClip ${GITHUB_REF_NAME}"
+        run: gh release create "${GITHUB_REF_NAME}" release-output/* --prerelease --generate-notes --title "TailBlink ${GITHUB_REF_NAME}"

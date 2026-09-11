@@ -6,7 +6,7 @@ import plistlib
 from pathlib import Path
 from build import Workflow, attachment, rich, fields, TOKEN_PATTERN, build
 
-CONFIG_PATH = 'TailClip-Simple/config.json'
+CONFIG_PATH = 'TailBlink-Simple/config.json'
 BASE_PATTERN = r'\Ahttps://[a-z0-9]+(?:-[a-z0-9]+)*\.trycloudflare\.com/v1\z'
 PAIR_PATTERN = r'(?s)\A\s*\{(?=.*"transport"\s*:\s*"cloudflare")(?=.*"ticket"\s*:).*\}\s*\z'
 CONFIG_PATTERN = r'(?s)\A\s*\{(?=.*"base_url"\s*:)(?=.*"transport"\s*:\s*"cloudflare").*\}\s*\z'
@@ -27,7 +27,7 @@ class SimpleWorkflow(Workflow):
 
 def build_simple(direction, *, config_path=CONFIG_PATH, base_pattern=BASE_PATTERN):
     w=SimpleWorkflow(direction)
-    w.action('comment','about',WFCommentActionText='TailClip 簡易連線｜用相機掃電腦 QR 完成連接。重啟隧道後須重掃。無需 Tailscale 或 VPN。')
+    w.action('comment','about',WFCommentActionText='TailBlink 簡易連線｜用相機掃電腦 QR 完成連接。重啟隧道後須重掃。無需 Tailscale 或 VPN。')
     share=attachment({'Type':'ExtensionInput'})
     share_text=w.action('detect.text','share-text',WFInput=share)
     clip=w.action('getclipboard','clipboard')
@@ -72,7 +72,7 @@ def build_simple(direction, *, config_path=CONFIG_PATH, base_pattern=BASE_PATTER
     empty=w.text('consumed-ticket','')
     w.action('setclipboard','clear-consumed-ticket',WFInput=empty,WFLocalOnly=True)
     w.end('clear-pairing-clipboard')
-    if direction=='send':w.stop('paired','配對完成。請複製文字後執行「TailClip：簡易傳送」。')
+    if direction=='send':w.stop('paired','配對完成。請複製文字後執行「TailBlink：簡易傳送」。')
     w.text('paired-token',token)
     w.otherwise('pair')
     old_token=w.value('old-token',config,'token');w.require('old-token-check',old_token,TOKEN_PATTERN,HELP)
@@ -95,18 +95,18 @@ def build_simple(direction, *, config_path=CONFIG_PATH, base_pattern=BASE_PATTER
         w.require('empty-result',received,r'(?s)\A.+\z','電腦剪貼簿沒有文字。')
         w.action('setclipboard','received-clipboard',WFInput=received,WFLocalOnly=True)
     device=w.value('device',response,'device_name')
-    w.action('notification','success',WFNotificationActionTitle='TailClip',WFNotificationActionBody=rich('已傳到「' if direction=='send' else '已從「',device,'」' if direction=='send' else '」取回'),WFNotificationActionSound=False)
+    w.action('notification','success',WFNotificationActionTitle='TailBlink',WFNotificationActionBody=rich('已傳到「' if direction=='send' else '已從「',device,'」' if direction=='send' else '」取回'),WFNotificationActionSound=False)
     workflow=build(direction)
-    workflow['WFWorkflowName']='TailClip：簡易傳送' if direction=='send' else 'TailClip：簡易取回'
+    workflow['WFWorkflowName']='TailBlink：簡易傳送' if direction=='send' else 'TailBlink：簡易取回'
     workflow['WFWorkflowActions']=w.actions
     workflow['WFWorkflowHasShortcutInputVariables']=True
     for a in w.actions:
         p=a['WFWorkflowActionParameters']
         if a['WFWorkflowActionIdentifier'].endswith('.notification') and p.get('UUID') in [w.uid(x+'/invalid-response/notice') for x in ('pair-request','transfer')]:
-            p['WFNotificationActionBody']=rich('電腦回應無效，請確認 TailClip 隧道仍運作；重啟後請掃描新 QR。')
+            p['WFNotificationActionBody']=rich('電腦回應無效，請確認 TailBlink 隧道仍運作；重啟後請掃描新 QR。')
     return workflow
 
 if __name__=='__main__':
     parser=argparse.ArgumentParser();parser.add_argument('--output',type=Path,default=Path('build/shortcuts/simple'));args=parser.parse_args();args.output.mkdir(parents=True,exist_ok=True)
     for direction in ('send','pull'):
-        (args.output/f'TailClip-Simple-{direction.title()}-unsigned.shortcut').write_bytes(plistlib.dumps(build_simple(direction),fmt=plistlib.FMT_BINARY,sort_keys=True))
+        (args.output/f'TailBlink-Simple-{direction.title()}-unsigned.shortcut').write_bytes(plistlib.dumps(build_simple(direction),fmt=plistlib.FMT_BINARY,sort_keys=True))

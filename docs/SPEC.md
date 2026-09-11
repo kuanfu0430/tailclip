@@ -1,7 +1,7 @@
-# TailClip 技術與產品規格
+# TailBlink 技術與產品規格
 
-- **文件版本：** 0.6
-- **日期：** 2026-09-08
+- **文件版本：** 0.7
+- **日期：** 2026-09-11
 - **專案狀態：** v0.1-alpha 開發中；M2 單主機雙入口實作中；新增 Debian 13 GNOME Wayland 驗收範圍
 - **首版平台：** iOS 26、Windows 11 x64、Ubuntu 26.04 x86_64 GNOME Wayland
 - **傳輸：** HTTPS over Tailscale Serve
@@ -10,11 +10,11 @@
 
 ## 0. 實作進度
 
-最後更新：2026-09-08；Windows 後續檢證與 alpha.2 修正見 14.1。
+最後更新：2026-09-11；完整更名見 0.1，Windows 後續檢證與 alpha.2 修正見 14.1。
 
 - [x] 將規格收斂為 UTF-8 純文字 M1，完成共用設定、認證、API、限流、配對與無內容日誌。
 - [x] 完成 Windows Win32 clipboard backend、自我安裝、自啟、Serve 設定、HTTPS health 與本機 QR 頁。
-- [x] 建立並簽署「TailClip：傳送」與「TailClip：取回」，將成品內嵌至 Windows／Linux binary。
+- [x] 建立並簽署「TailBlink：傳送」與「TailBlink：取回」，將成品內嵌至 Windows／Linux binary。
 - [x] 完成 Ubuntu Wayland backend、安裝腳本與 `systemd --user` service。
 - [x] 通過 format、vet、一般／race 測試、Windows／Linux x86_64 交叉編譯及 release 組裝測試。
 - [x] 產生可直接下載測試的 Windows x64 ZIP；使用者不需 Go 或自行編譯。
@@ -22,7 +22,7 @@
 - [x] `v0.1.0-alpha.3` 修正本機設定頁 QR 被 `html/template` 改寫為 `#ZgotmplZ` 的問題，並讓 Windows 首次安裝以前景程序同步完成、重用既有 Serve、目前使用者權限優先及必要時 UAC fallback。
 - [x] `v0.1.0-alpha.4` 修正兩支 Shortcut 的空白條件與 RTF 隱式轉 URL 問題，並以原生 Win32 通知區圖示加入開啟設定頁、自啟切換與結束操作；安裝新版時會停止仍在執行的舊版 Agent 並啟動新版。已完成捷徑重開、重新匯出、簽署、Windows x64 交叉編譯與完整 ZIP 驗證；Git 追蹤的同名 ZIP 必須與 GitHub Release 的乾淨 tag 建置完全一致，不得保留由前一 commit 的 dirty 工作樹產生、僅版本字串相同的候選包。
 - [x] `v0.1.0-alpha.5` 明確將四個 API 回應從 URL 內容解析為 Dictionary，再讀取欄位，排除 iOS 將 JSON 回應視為文字時的「文字無法轉換到辭典」錯誤；已完成捷徑重開、重新匯出、簽署、測試與 Windows x64 ZIP 解壓驗證。
-- [x] `v0.1.0-alpha.5` 後續修正 Windows 升級清理時序：先完成舊版 Agent 停止與新版接手，再重試移除暫存的 `TailClip.exe.old`，避免執行中的舊映像仍被 Windows 鎖定而留下整份舊 EXE。
+- [x] `v0.1.0-alpha.5` 後續修正 Windows 升級清理時序：先完成舊版 Agent 停止與新版接手，再重試移除暫存的 `TailBlink.exe.old`，避免執行中的舊映像仍被 Windows 鎖定而留下整份舊 EXE。
 - [x] `v0.1.0-alpha.6` 重建兩支捷徑：明確 UUID 資料流、設定驗證、固定 config.json 檔名及讀回、重新配對、空值與 API 錯誤處理；macOS 15.7.7 原生 Shortcuts + 真實 Go API 的 17 項隔離整合驗收全通過。
 - [x] `v0.1.0-alpha.7` 修正 Windows 剪貼簿操作未固定 OS thread、狀態查詢未與讀寫序列化及 CloseClipboard 結果被忽略的問題；維持同一捷徑／API／配對格式。
 - [x] 2026-09-05 使用者回報 alpha.6 iPhone ↔ Windows 核心捷徑傳輸實機測試成功，確認本次修復可用；未將此回報擴張為以下完整平台驗收。
@@ -32,19 +32,31 @@
 - [x] 2026-09-07 依使用者指示整合 issue #1／#4，將 M2 收斂為單台 Windows 與 iPhone 的雙入口；第 13、14 節取代先前較廣的規劃。此勾選僅代表文件完成。
 - [ ] 依第 14 節實作與驗收 M2；桌面端已有候選實作；2026-09-07 最新指示要求 A／B 都使用 iPhone 捷徑，B 已授權改用 Cloudflare 臨時隧道，實作與驗收見第 13、14 節。
 
-目前決策：Git 只追蹤版本化的完整 Windows 測試 ZIP 與其 checksum；裸 EXE、臨時 staging 目錄及其他可重建輸出仍忽略。原因是測試者必須能從 GitHub 直接下載使用，但倉庫不應混入每次 CI 都會變動的中繼檔。
+目前決策：Git 只追蹤目前版本的完整 Windows ZIP、Linux tar.gz 與其 checksum；裸執行檔、staging 及其他中繼輸出仍忽略。過往發行包保留於 Git 歷史，不保留在目前工作樹，避免測試者下載到舊品牌成品。
+
+## 0.1 TailBlink 完整更名（2026-09-11）
+
+依使用者決定，產品名稱統一為 `TailBlink`，命令／模組／HTTP 路徑使用 `tailblink`，環境變數前綴使用 `TAILBLINK_`。掃描全部 Git 追蹤檔案與路徑，涵蓋程式碼、文件、測試、服務、安裝腳本、CI、配對標記、iCloud 設定及四支捷徑；不保留舊名稱相容別名，不改寫 Git 歷史、既有標籤或過往 Release。
+
+新版本為 `v0.2.0-alpha.3`。舊安裝包不能只改檔名偽裝成新版；目前工作樹改保留從更名後乾淨來源 commit 重建的 Windows／Linux 完整包，重新計算全部 checksum。四支捷徑必須由更名後 builder 重新產生、完成簽署後以 macOS Apple Archive 工具解封比對語意及 manifest，再內嵌至執行檔。
+
+完整更名會改變設定目錄、Serve 路徑、服務名稱及配對標記。使用者須先用原版解除安裝程式移除原桌面端，再安裝新版、重新安裝四支捷徑中所需的兩支並配對；不自動沿用舊憑證。功能、安全邊界與原本尚未通過的實機驗收範圍不因更名而變成已通過。
+
+新增 `tools/check_branding.py`：不分大小寫檢查目前 Git 追蹤檔名、UTF-8／UTF-16／UTF-32 位元組內容及 ZIP／tar.gz 內部檔案；另由 macOS CI 解封驗證已簽署捷徑。檢查範圍不包含 `.git`、歷史 commit／Release、GitHub 倉庫顯示名稱或外部已安裝裝置。Go module 已使用新名稱；GitHub 倉庫網址更名屬另一個平台管理操作，不在檔案更名腳本內猜測或修改。
+
+GitHub macOS runner 未登入 iCloud，無法直接執行 Apple Shortcuts 簽署。本次四支公開捷徑模板使用 Cherri 所採用的 RoutineHub HubSign 服務完成簽署，再以 macOS `aea`／`aa` 解封，逐一比對來源動作與 manifest。未傳送任何使用者剪貼簿、實際網址或配對憑證；此服務不是 TailBlink 執行時依賴。既有 `sign.py`／`sign_simple.py` 仍使用開發者自己的 macOS Apple CLI，不加入隱性遠端 fallback。
 
 ## 1. 產品目標
 
-TailClip 讓使用者在 iPhone 與 Windows／Linux 電腦之間手動傳送目前的純文字剪貼簿。它利用既有的 Tailscale 私有網路，不建立公開中繼站、帳號系統或剪貼簿歷史。
+TailBlink 讓使用者在 iPhone 與 Windows／Linux 電腦之間手動傳送目前的純文字剪貼簿。它利用既有的 Tailscale 私有網路，不建立公開中繼站、帳號系統或剪貼簿歷史。
 
 首版的日常操作必須維持一步完成：
 
-- 在 iPhone 執行「TailClip：傳送」，桌面剪貼簿立即變成 iPhone 的 Share Sheet 文字或目前剪貼簿文字。
-- 在 iPhone 執行「TailClip：取回」，桌面目前的文字剪貼簿立即寫入 iPhone 剪貼簿。
+- 在 iPhone 執行「TailBlink：傳送」，桌面剪貼簿立即變成 iPhone 的 Share Sheet 文字或目前剪貼簿文字。
+- 在 iPhone 執行「TailBlink：取回」，桌面目前的文字剪貼簿立即寫入 iPhone 剪貼簿。
 - 日常操作不得再要求選方向、選裝置、輸入網址或貼上 token。
 
-第一次設定可以包含 Apple／Tailscale 無法省略的安裝與授權畫面，但 TailClip 必須自動完成可自動化的部分。
+第一次設定可以包含 Apple／Tailscale 無法省略的安裝與授權畫面，但 TailBlink 必須自動完成可自動化的部分。
 
 ## 2. v0.1-alpha 範圍
 
@@ -56,7 +68,7 @@ TailClip 讓使用者在 iPhone 與 Windows／Linux 電腦之間手動傳送目�
 - Windows 11 x64 剪貼簿取回至 iOS 26。
 - iOS Share Sheet 的純文字與網址傳送；網址在本版視為純文字。
 - Ubuntu 26.04 x86_64 GNOME Wayland 的雙向文字傳送。
-- 兩支固定捷徑：「TailClip：傳送」與「TailClip：取回」。
+- 兩支固定捷徑：「TailBlink：傳送」與「TailBlink：取回」。
 - iOS 端在需要時自動連線 Tailscale。
 - Windows 單一 EXE 自動安裝、通知區常駐、可切換的使用者登入自啟、Serve 設定、診斷與 QR 配對。
 - Ubuntu 一支安裝腳本、`systemd --user` 自啟、Serve 設定、診斷與 QR 配對。
@@ -80,18 +92,18 @@ TailClip 讓使用者在 iPhone 與 Windows／Linux 電腦之間手動傳送目�
 
 ### 3.1 Windows 首次設定
 
-1. 使用者下載 Windows x64 ZIP、解壓後雙擊其中唯一需要執行的 `TailClip.exe`；不需安裝 Go 或其他 runtime。
-2. 程式將自身安裝到 `%LOCALAPPDATA%\TailClip`，建立使用者層自啟並啟動 Agent；原始前景程序同步完成後續流程，不交給無畫面的安裝子程序。
-3. TailClip 讀取本機已登入的 Tailscale tailnet、連線狀態與 `*.ts.net` 名稱，並檢查 `127.0.0.1:17733` 與 `127.0.0.1:17734`。
-4. 若既有 `/tailclip` Serve path 已指向 `127.0.0.1:17733`，直接重用，不重新設定或要求 UAC。
+1. 使用者下載 Windows x64 ZIP、解壓後雙擊其中唯一需要執行的 `TailBlink.exe`；不需安裝 Go 或其他 runtime。
+2. 程式將自身安裝到 `%LOCALAPPDATA%\TailBlink`，建立使用者層自啟並啟動 Agent；原始前景程序同步完成後續流程，不交給無畫面的安裝子程序。
+3. TailBlink 讀取本機已登入的 Tailscale tailnet、連線狀態與 `*.ts.net` 名稱，並檢查 `127.0.0.1:17733` 與 `127.0.0.1:17734`。
+4. 若既有 `/tailblink` Serve path 已指向 `127.0.0.1:17733`，直接重用，不重新設定或要求 UAC。
 5. 只有需要新增 Serve path 時才顯示 Certificate Transparency 說明；先以目前使用者權限設定，權限不足才要求一次 UAC，且不得重設其他 Serve 設定。
-6. TailClip 驗證公開 HTTPS health endpoint。
+6. TailBlink 驗證公開 HTTPS health endpoint。
 7. 本機設定頁顯示可實際載入與掃描的限時 QR。
 8. iPhone 掃 QR，安裝兩支捷徑並點一下複製配對資料，再執行「取回」完成配對並取得電腦文字。先執行「傳送」時只完成配對，需再複製內容後執行一次。
 
-TailClip 不建立新的 tailnet、也不替兩台裝置執行 Tailscale 帳號配對；Windows 與 iPhone 必須已登入同一個 tailnet。安裝時不要求指定 peer 當下在線，避免 iPhone 暫時離線時阻擋桌面端設定。
+TailBlink 不建立新的 tailnet、也不替兩台裝置執行 Tailscale 帳號配對；Windows 與 iPhone 必須已登入同一個 tailnet。安裝時不要求指定 peer 當下在線，避免 iPhone 暫時離線時阻擋桌面端設定。
 
-安裝完成後 Agent 必須在 Windows 通知區顯示 TailClip 圖示。按兩下圖示或選擇「開啟連線與配對頁面」會打開本機設定頁；「登入 Windows 後自動啟動」可直接勾選或取消，且不得改動 Windows 帳號登入方式；「結束 TailClip」只結束目前程序。再次雙擊已安裝的 EXE 只開啟本機設定頁。解除安裝必須經過明確確認，只移除 TailClip 自啟、程序、檔案與自己的 Serve path。
+安裝完成後 Agent 必須在 Windows 通知區顯示 TailBlink 圖示。按兩下圖示或選擇「開啟連線與配對頁面」會打開本機設定頁；「登入 Windows 後自動啟動」可直接勾選或取消，且不得改動 Windows 帳號登入方式；「結束 TailBlink」只結束目前程序。再次雙擊已安裝的 EXE 只開啟本機設定頁。解除安裝必須經過明確確認，只移除 TailBlink 自啟、程序、檔案與自己的 Serve path。
 
 ### 3.2 Ubuntu 首次設定
 
@@ -99,12 +111,12 @@ TailClip 不建立新的 tailnet、也不替兩台裝置執行 Tailscale 帳號�
 2. 腳本檢查 Ubuntu 26.04 x86_64、Tailscale 與 `wl-clipboard`。
 3. 缺少 `wl-clipboard` 時，腳本以單次 `sudo apt-get install` 補齊。
 4. 腳本安裝 binary 與 `systemd --user` unit，啟動 Agent。
-5. 腳本以 `sudo tailscale serve` 新增 `/tailclip` path，完成 HTTPS health check。
+5. 腳本以 `sudo tailscale serve` 新增 `/tailblink` path，完成 HTTPS health check。
 6. 開啟與 Windows 相同的本機設定／QR 頁。
 
 ### 3.3 每日傳送
 
-1. 「TailClip：傳送」先驗證共用設定；一般傳送以 Share Sheet input 為內容來源，沒有 input 才使用 iOS 剪貼簿。若剪貼簿是新配對資料則優先進行配對，本次不傳送。
+1. 「TailBlink：傳送」先驗證共用設定；一般傳送以 Share Sheet input 為內容來源，沒有 input 才使用 iOS 剪貼簿。若剪貼簿是新配對資料則優先進行配對，本次不傳送。
 2. 捷徑呼叫 Tailscale Connect 並等待兩秒；已連線時保持連線。
 3. 捷徑送出 `POST /v1/clipboard/text`。
 4. Agent 驗證 token、內容類型與大小後寫入桌面剪貼簿。
@@ -112,7 +124,7 @@ TailClip 不建立新的 tailnet、也不替兩台裝置執行 Tailscale 帳號�
 
 ### 3.4 每日取回
 
-1. 「TailClip：取回」確認 Tailscale 已連線。
+1. 「TailBlink：取回」確認 Tailscale 已連線。
 2. 捷徑呼叫 `GET /v1/clipboard/text`。
 3. Agent 即時讀取桌面剪貼簿，不讀取歷史或快取內容。
 4. 捷徑以 Local Only 寫入 iOS 剪貼簿。
@@ -124,10 +136,10 @@ TailClip 不建立新的 tailnet、也不替兩台裝置執行 Tailscale 帳號�
 iOS 26 Shortcuts
     │ HTTPS request + Bearer token
     ▼
-Tailscale Serve: https://<device>.<tailnet>.ts.net/tailclip
+Tailscale Serve: https://<device>.<tailnet>.ts.net/tailblink
     │ proxy only
     ▼
-127.0.0.1:17733 TailClip Agent
+127.0.0.1:17733 TailBlink Agent
     ├─ HTTP API
     ├─ token、大小、逾時與限流
     ├─ 限時配對頁
@@ -154,7 +166,7 @@ Tailscale Serve: https://<device>.<tailnet>.ts.net/tailclip
 外部 base URL：
 
 ```text
-https://<device>.<tailnet>.ts.net/tailclip/v1
+https://<device>.<tailnet>.ts.net/tailblink/v1
 ```
 
 Agent 本機 base URL：
@@ -163,7 +175,7 @@ Agent 本機 base URL：
 http://127.0.0.1:17733/v1
 ```
 
-Tailscale Serve 會在代理前移除 `/tailclip` mount prefix，因此 Agent 只承載 `/v1` 路由；公開 HTTPS health 仍必須在實機安裝流程中驗證。
+Tailscale Serve 會在代理前移除 `/tailblink` mount prefix，因此 Agent 只承載 `/v1` 路由；公開 HTTPS health 仍必須在實機安裝流程中驗證。
 
 ### 5.2 共通規則
 
@@ -182,7 +194,7 @@ Tailscale Serve 會在代理前移除 `/tailclip` mount prefix，因此 Agent �
 ```json
 {
   "status": "ok",
-  "service": "tailclip-agent",
+  "service": "tailblink-agent",
   "api_version": 1,
   "agent_version": "0.1.0-alpha.1"
 }
@@ -283,8 +295,8 @@ Tailscale Serve 會在代理前移除 `/tailclip` mount prefix，因此 Agent �
 ### 6.1 Token
 
 - 初次啟動產生 32-byte 密碼學安全亂數，以無 padding base64url 儲存。
-- Windows 設定放在 `%LOCALAPPDATA%\TailClip\config.json`，繼承使用者私有 ACL。
-- Linux 設定放在 `${XDG_CONFIG_HOME:-~/.config}/tailclip/config.json`，目錄 `0700`、檔案 `0600`。
+- Windows 設定放在 `%LOCALAPPDATA%\TailBlink\config.json`，繼承使用者私有 ACL。
+- Linux 設定放在 `${XDG_CONFIG_HOME:-~/.config}/tailblink/config.json`，目錄 `0700`、檔案 `0600`。
 - token 不得出現在命令列參數、log、Shortcut artifact 或公開錯誤中。
 - 本機設定頁可建立新配對頁；只有明確執行「撤銷並重新配對」才輪替 token。
 
@@ -302,22 +314,22 @@ Tailscale Serve 會在代理前移除 `/tailclip` mount prefix，因此 Agent �
 ```json
 {
   "version": 1,
-  "base_url": "https://work-pc.example.ts.net/tailclip/v1",
+  "base_url": "https://work-pc.example.ts.net/tailblink/v1",
   "token": "<base64url>",
   "device_name": "工作電腦",
   "tailscale_device": "work-pc"
 }
 ```
 
-捷徑在儲存前必須驗證 version、HTTPS、`.ts.net` hostname、token 格式與 `/status`。成功後保存同一份 JSON 到 `iCloud Drive/Shortcuts/TailClip/config.json`，並清除剪貼簿中的配對資料。
+捷徑在儲存前必須驗證 version、HTTPS、`.ts.net` hostname、token 格式與 `/status`。成功後保存同一份 JSON 到 `iCloud Drive/Shortcuts/TailBlink/config.json`，並清除剪貼簿中的配對資料。
 
 ## 7. 平台實作
 
 ### 7.1 共用 Go 核心
 
-- Go module：`github.com/kuanfu0430/tailclip`。
+- Go module：`github.com/kuanfu0430/tailblink`。
 - Go toolchain：1.27.1。
-- binary 名稱：Windows `TailClip.exe`；Linux `tailclip`。
+- binary 名稱：Windows `TailBlink.exe`；Linux `tailblink`。
 - 核心 clipboard interface 只有 `Available`、`ReadText`、`WriteText`。
 - 除標準函式庫外，只使用 `golang.org/x/sys` 與一個離線 QR encoder。
 - config 使用 JSON 與明確版本，不加入 TOML parser。
@@ -325,8 +337,8 @@ Tailscale Serve 會在代理前移除 `/tailclip` mount prefix，因此 Agent �
 
 ### 7.2 Windows 11 x64
 
-- 發行物為一個可直接解壓的 ZIP，內含 `TailClip.exe`、兩支已簽署 Shortcut、Windows 使用說明、版本、內部 checksum 與解除安裝入口。
-- 安裝只要求雙擊 `TailClip.exe`；其他檔案是說明、備援或移除入口，不得要求使用者執行額外安裝腳本。
+- 發行物為一個可直接解壓的 ZIP，內含 `TailBlink.exe`、兩支已簽署 Shortcut、Windows 使用說明、版本、內部 checksum 與解除安裝入口。
+- 安裝只要求雙擊 `TailBlink.exe`；其他檔案是說明、備援或移除入口，不得要求使用者執行額外安裝腳本。
 - Agent 必須在互動式登入使用者 session 運行，不建立 Session 0 service。
 - 使用 Win32 `OpenClipboard`、`EmptyClipboard`、`SetClipboardData`、`GetClipboardData` 與 `CF_UNICODETEXT`。
 - 剪貼簿的狀態查詢、讀取與寫入共用同一個 mutex；完整 native 交易透過 runtime.LockOSThread 固定 OS thread，按 Create owner → Open → 操作 → Close → Destroy owner 順序執行，清理結果不可忽略。
@@ -334,14 +346,14 @@ Tailscale Serve 會在代理前移除 `/tailclip` mount prefix，因此 Agent �
 - 只有 ERROR_ACCESS_DENIED 對應的占用錯誤做短暫 exponential backoff，重試取得開啟鎖的總等待上限為 1 秒，每次等待裁切至剩餘預算；context 取消後不開始新操作。其它 Win32 錯誤直接回報，不能全數標示為「其他程式使用中」。
 - EXE 第一次執行自我複製、註冊 `HKCU` 自啟，並由原始前景程序同步完成安裝；Agent 本身才以背景模式啟動。
 - EXE 原地升級先以 `.old` 保留正在使用的舊映像，待舊版 Agent 停止、新版 Agent 與設定流程完成後再重試清除；不得在舊 Agent 仍執行時只做一次忽略錯誤的刪除。
-- Agent 使用 Win32 通知區圖示提供「開啟連線與配對頁面」、「登入 Windows 後自動啟動」核取項目與「結束 TailClip」；不為此導入 GUI framework 或額外背景程序。
-- 已存在且目標正確的 `/tailclip` Serve path 直接重用；缺少時先由目前使用者設定，只有失敗且提升權限可能有幫助時才使用同一 EXE 的 elevated helper。
+- Agent 使用 Win32 通知區圖示提供「開啟連線與配對頁面」、「登入 Windows 後自動啟動」核取項目與「結束 TailBlink」；不為此導入 GUI framework 或額外背景程序。
+- 已存在且目標正確的 `/tailblink` Serve path 直接重用；缺少時先由目前使用者設定，只有失敗且提升權限可能有幫助時才使用同一 EXE 的 elevated helper。
 - Serve 完成後必須直接驗證公開 HTTPS health，再開啟設定頁；本機設定頁的 QR 必須在實際瀏覽器中載入，不得出現模板安全替代值。
 - 本版不宣稱 binary 已簽章；下載與 SmartScreen 提示在 README 說明。
 
 #### alpha.7 決策與依據
 
-使用者在 alpha.6 核心傳輸成功後遇到 `clipboard_busy`。此訊息來自桌面 API；程式檢查找到未固定 OS thread 及 Available 未序列化兩項可導致間歇性占用的缺陷。舊邏輯在隔離回歸副本中重現實際 OS thread 遷移與狀態／讀寫重疊；這是已確認的程式缺陷，尚無該次 Windows 現場的持鎖程序證據，不能斷言所有占用皆由 TailClip 引起。
+使用者在 alpha.6 核心傳輸成功後遇到 `clipboard_busy`。此訊息來自桌面 API；程式檢查找到未固定 OS thread 及 Available 未序列化兩項可導致間歇性占用的缺陷。舊邏輯在隔離回歸副本中重現實際 OS thread 遷移與狀態／讀寫重疊；這是已確認的程式缺陷，尚無該次 Windows 現場的持鎖程序證據，不能斷言所有占用皆由 TailBlink 引起。
 
 依 [Go runtime.LockOSThread](https://pkg.go.dev/runtime#LockOSThread) 保留 OS thread 狀態；依 [Microsoft OpenClipboard](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-openclipboard) 使用有效 owner 並關閉每次成功的 Open。立即呈現的剪貼簿資料由 Windows 接管，無需長期保留 owner 視窗，參見 [Microsoft Clipboard Operations](https://learn.microsoft.com/en-us/windows/win32/dataxchg/clipboard-operations)。升級停止舊版 Agent 後可清除舊程序遺留的占用；不修改手機捷徑、不輪替 token，也不強制關閉其他應用。
 
@@ -355,7 +367,7 @@ Tailscale Serve 會在代理前移除 `/tailclip` mount prefix，因此 Agent �
 
 ## 8. iOS Shortcuts
 
-### 8.1 `TailClip：傳送`
+### 8.1 `TailBlink：傳送`
 
 - 接受 Share Sheet 的 Text 與 URL。
 - 傳送內容以 Shortcut Input 優先，沒有才使用本次開始時取得的剪貼簿文字；兩種來源都拒絕空字串與配對 JSON。
@@ -365,7 +377,7 @@ Tailscale Serve 會在代理前移除 `/tailclip` mount prefix，因此 Agent �
 - 呼叫 Tailscale Connect 並等待兩秒；日常傳輸只送一次 API request，新配對另需一次 /status 驗證。
 - POST JSON 至 `/clipboard/text`，解析回應後顯示短通知。
 
-### 8.2 `TailClip：取回`
+### 8.2 `TailBlink：取回`
 
 - 與傳送捷徑使用相同 config 與連線流程。
 - 所有 `If` action 只保留必要且已填值的條件列；不得存在會觸發「請選擇此動作中每個參數的值」的空白條件。
@@ -387,10 +399,10 @@ Tailscale Serve 會在代理前移除 `/tailclip` mount prefix，因此 Agent �
 
 - 舊成品與 build spec 不一致：token 取值未綁定辭典、Save File 缺少目的檔名、未驗證設定欄位，取回也未處理錯誤與空值。`/status` 錯誤表示前綴已為空，須在建 URL 之前攔截，而非繼續增加型別轉換。
 - 合併配對與讀檔後的解析流程；所有取值明確綁定同一辭典，網址與認證直接引用動作輸出，避免跨分支命名變數漂移。
-- 新複製的配對 JSON 優先於既有檔案，通過格式與 `/status` 驗證後才覆寫 `Shortcuts/TailClip/config.json`，因此可修復壞設定或更新已輪替的 token。
+- 新複製的配對 JSON 優先於既有檔案，通過格式與 `/status` 驗證後才覆寫 `Shortcuts/TailBlink/config.json`，因此可修復壞設定或更新已輪替的 token。
 - 傳送捷徑完成配對後停止，提示使用者複製要傳送的文字再執行；配對資料不得作為 payload。取回可在配對後立即取得電腦文字。
 - 原生驗收確認 Save File 會依內容型別改副檔名，須先 Set Name(config.json, WFDontIncludeFileExtension=false)，儲存後讀回存在才清除配對剪貼簿。Text(空字串) 仍可包含一個項目，傳送改用非空字串正則符合結果判斷，避免空內容走到 HTTP。
-- 配對頁以 UTF-8 Content-Disposition 檔名交付中文名稱，避免使用者繼續誤開 TailClip-Send 2 等舊副本。
+- 配對頁以 UTF-8 Content-Disposition 檔名交付中文名稱，避免使用者繼續誤開 TailBlink-Send 2 等舊副本。
 - 成功前均檢查 API `ok`；空剪貼簿或錯誤不改寫手機文字。原生網路動作的連線／TLS 錯誤由 Shortcuts 呈現，不宣稱有該動作未提供的自訂 timeout 或 try/catch。
 
 ## 9. 安全與隱私
@@ -407,7 +419,7 @@ Tailscale Serve 會在代理前移除 `/tailclip` mount prefix，因此 Agent �
 - 不記錄 request body、response text、token、clipboard hash 或完整 setup URL。
 - 不建立內容 cache、歷史、離線佇列或 crash upload。
 
-邊界：TailClip 無法防止已取得本機登入 session 的惡意程式讀取系統剪貼簿，也無法保護已被攻陷的 iPhone 或桌面。
+邊界：TailBlink 無法防止已取得本機登入 session 的惡意程式讀取系統剪貼簿，也無法保護已被攻陷的 iPhone 或桌面。
 
 ## 10. 測試與驗收
 
@@ -420,7 +432,7 @@ Tailscale Serve 會在代理前移除 `/tailclip` mount prefix，因此 Agent �
 - Serve：既有 root mapping 保留、同 path 衝突、idempotent setup、絕不 reset。
 - CI：format、vet、race tests、Windows x64 build、Linux x86_64 build、捷徑資料流與成品來源雜湊。
 - alpha.7：本機測試涵蓋完整交易保持 OS thread、所有成功／失敗／panic 路徑清理、狀態／讀寫互斥、取消、短暫占用恢復、永久占用截止及非占用錯誤不重試。舊版語意的隔離副本在「執行緒遷移」與「並行操作」兩項測試失敗，修正後通過。
-- Windows 原生測試 `TestWindowsClipboardIntegration` 含 100 輪 Unicode 寫入／狀態／讀回、90 個並行查詢／傳輸、另一 OS thread 持鎖後釋放、等待取消及持續占用後恢復；CI 的可丟棄 Windows runner 以 `TAILCLIP_WINDOWS_CLIPBOARD_TEST=1` 啟用。一般 go test 會略過此實體剪貼簿測試，避免改寫開發者內容。本次只完成 Windows 測試 EXE 交叉編譯，未取得 Windows 執行結果。
+- Windows 原生測試 `TestWindowsClipboardIntegration` 含 100 輪 Unicode 寫入／狀態／讀回、90 個並行查詢／傳輸、另一 OS thread 持鎖後釋放、等待取消及持續占用後恢復；CI 的可丟棄 Windows runner 以 `TAILBLINK_WINDOWS_CLIPBOARD_TEST=1` 啟用。一般 go test 會略過此實體剪貼簿測試，避免改寫開發者內容。本次只完成 Windows 測試 EXE 交叉編譯，未取得 Windows 執行結果。
 - 2026-09-05 macOS 原生整合：17/17 通過。正式簽署成品已在 Mac 以中文名稱匯入並重開；QA 副本與設定已清理，原始剪貼簿已還原。涵蓋首次配對保存／讀回、分享 Unicode/CRLF/跳脫、剪貼簿 fallback、網址、取回、雙向空值、配對憑證拒送、1 MiB／超量、四種無效設定、失效 token、失敗配對保留設定及損壞設定修復。
 - 原生測試從同一 builder 產生 QA 捷徑，只替換設定路徑、loopback URL 規則、移除 iOS ConnectIntent、將通知換為原生 Stop and Output；HTTP、檔案、JSON 與剪貼簿動作保持原生。testhost 使用真實 API 與記憶體剪貼簿，port 由 OS 在 127.0.0.1 分配。這些結果不代表 iPhone、Windows 剪貼簿或 Tailscale 跨裝置連線已驗收。
 
@@ -460,27 +472,29 @@ Windows alpha 只有在「下載後雙擊一次、至多一次必要 UAC、iPhon
 
 ## 11. 發布
 
-- 第一個 tag：`v0.1.0-alpha.1`。
-- 第一個可下載測試包為 `v0.1.0-alpha.1`；目前 Windows build candidate 為 `v0.1.0-alpha.7`（本機建置，未發布 GitHub）。
-- alpha.6 本機 ZIP 由乾淨來源 commit `e644810` 建置，EXE 的 `vcs.modified=false`；Windows x64 GUI PE、兩支內嵌捷徑、ZIP 每檔 SHA-256 與 ASCII／CRLF 啟動腳本已核對。未執行 GitHub 發布或任何雲端倉庫操作。
-- alpha.7 本機 ZIP 由乾淨來源 commit `b4ecbd0` 建置，EXE 的 `vcs.modified=false`；已核對 Windows x64 GUI PE、8 個封裝檔案、內嵌捷徑與全檔 SHA-256。既有 alpha.6 捷徑直接相容，不需重新配對。
-- Git 追蹤的 Windows 測試產物：`dist/TailClip-v0.1.0-alpha.7-windows-x64.zip` 及其 `.sha256`；舊版測試包保留供回歸比對。
-- GitHub Release artifacts：版本化 Windows x64 ZIP、Linux x86_64 tarball、兩支 signed Shortcuts 與 `SHA256SUMS`。
-- Windows ZIP 必須包含 `TailClip.exe`、`README-Windows.txt`、`Start-TailClip.cmd`、`Uninstall-TailClip.cmd`、`VERSION.txt`、兩支 signed Shortcuts 與包內 `SHA256SUMS.txt`。
-- `Start-TailClip.cmd` 使用 ASCII／CRLF 與完整引號路徑啟動 TailClip，供一鍵啟動服務與配對頁；原有 EXE 直接啟動入口保留。
-- release ZIP 解壓後只需雙擊 `TailClip.exe`；不得要求終端機、Go toolchain 或手動複製檔案。
-- CI 不保存或產生真實配對 token。
-- 本版沒有自動更新；升級前保留相容的 `config.json`，未知 config version 安全停止並提示重新設定。
+目前完整更名測試版為 **v0.2.0-alpha.3**，Windows 與 Linux 安裝包的程式及捷徑來自乾淨來源 commit `d2ec58333f7283d17e269ffeb18cfed34a7896ce`。後續純文件修正不改變套件的來源追溯記錄；套件內 `SOURCE.txt` 始終記錄實際建置來源，不以較新的文件 commit 冒充。
+
+目前 Git 工作樹追蹤 `dist/TailBlink-v0.2.0-alpha.3-windows-x64.zip`、`dist/TailBlink-v0.2.0-alpha.3-linux-x64.tar.gz` 及兩者 `.sha256`。舊版套件只保留在 Git 歷史及既有 Release，不留在目前檔案樹；早期 alpha.6／alpha.7 的相容性及本機建置紀錄不能套用到完整更名版本。
+
+Windows 套件包含 `TailBlink.exe`、已核對雜湊的 `tailblink-cloudflared-*`、第三方授權、`README-Windows.txt`、`Start-TailBlink.cmd`、`Uninstall-TailBlink.cmd`、四支 signed Shortcuts、`VERSION.txt`、`SOURCE.txt` 與涵蓋全部附帶檔案的 `SHA256SUMS.txt`。完整解壓後直接雙擊 EXE，不要求終端機或 Go toolchain；CMD 入口維持 ASCII／CRLF 及完整引號路徑。
+
+Linux 套件包含 `tailblink`、對應 cloudflared 及授權、四支 signed Shortcuts、安裝／解除安裝腳本、`tailblink.service`、版本／來源與 checksum 記錄。封裝檢查必須驗證可執行檔案的權限及 shell 腳本 LF 換行。
+
+發布前執行 Go 格式、vet、單元／整合／race 測試、捷徑來源與成品一致性、Windows 原生剪貼簿及 Debian 安裝／更新／移除回歸。macOS 負責解封四支已簽署捷徑，比對全部動作／參數；跨平台建置及驗證不代表完成 iPhone 或桌面 GUI 實機驗收。
+
+`python3 tools/check_branding.py` 對目前追蹤檔名、文字與二進位內容、ZIP／tar.gz 內部項目進行不分大小寫的舊名稱檢查。CI 不保存或產生真實配對 token。新增正式 GitHub Release 與倉庫網址更名是平台操作，不因檔案修改而自動完成。
+
+本版沒有自動更新。從先前命名版本升級，必須先用原版解除安裝程式移除桌面端，安裝 TailBlink 後重新安裝所需的兩支手機捷徑並配對；不提供舊名稱別名或憑證自動遷移。不要讓兩個命名版本同時執行。正常使用新版時，同一組捷徑不需因簡易隧道重啟而重裝，但必須掃新 QR。
 
 ## 12. 後續 Roadmap
 
-M2 僅執行第 13、14 節的單主機雙入口；未採用的 issue #1／#4 擴充範圍移至 [#5 待做功能](https://github.com/kuanfu0430/tailclip/issues/5)。其餘項目仍另行評估：
+M2 僅執行第 13、14 節的單主機雙入口；未採用的 issue #1／#4 擴充範圍移至 issue #5（待做功能）。其餘項目仍另行評估：
 
 1. 多主機管理、多目標切換與進階授權（待做，不屬 M2）。
 2. `text/uri-list`、HTML + plain fallback、PNG。
 3. Taildrop 檔案傳送與受控暫存。
 4. X11／其他 Linux 桌面與正式套件。
-5. 原生 iOS App 與擴充 App Intents；A／B 均不以另裝 TailClip App 作為本次交付。
+5. 原生 iOS App 與擴充 App Intents；A／B 均不以另裝 TailBlink App 作為本次交付。
 6. 明確 opt-in 的半自動同步。
 
 上述項目目前不是相容性承諾，也不應提前建立程式碼骨架。
@@ -492,34 +506,34 @@ M2 僅執行第 13、14 節的單主機雙入口；未採用的 issue #1／#4 �
 2026-09-07 使用者同意簡易連線改為 Cloudflare Quick Tunnel，接受沒有 SLA、通道重建須重掃 QR，以及 Cloudflare 作為 HTTPS 終止與內容可見的信任方。撤回 Tailcat、原生 iPhone App、VPN／TestFlight 與永久手機通道要求。本節取代先前 M2 方案；不把本機測試視為所有平台實機驗收。
 
 - A：既有 Tailscale 基建版保持原狀，包括 CLI／Serve、身分與 Bearer 認證、舊設定、自啟、QR 與兩支既有簽署捷徑。先前免 QR 新捷徑的未完工作不納入這次改動。
-- B：Windows 11 x64、Debian 13／Ubuntu 26.04 GNOME Wayland 桌面啟動 Cloudflare 臨時隧道；手機用相機掃 QR、安裝兩支「TailClip：簡易傳送／簡易取回」，配對後以原生 HTTPS 動作收發。兩支簡易捷徑只需安裝一次，與 A 名稱、設定檔及成品分開，避免覆蓋既有配對。
+- B：Windows 11 x64、Debian 13／Ubuntu 26.04 GNOME Wayland 桌面啟動 Cloudflare 臨時隧道；手機用相機掃 QR、安裝兩支「TailBlink：簡易傳送／簡易取回」，配對後以原生 HTTPS 動作收發。兩支簡易捷徑只需安裝一次，與 A 名稱、設定檔及成品分開，避免覆蓋既有配對。
 - Mac 僅用於建置、原生捷徑驗證，不新增 macOS 桌面產品。無手機 VPN、Cloudflare 帳號、網域或手動 CLI 要求。
 
 ### 13.2 B 使用流程與生命週期
 
-1. 桌面使用者選簡易連線，TailClip 啟動隨發行版附帶的固定版本 cloudflared；綁定 OS 分配的空閒 `127.0.0.1` 埠，只轉發 B 專用 handler。
-2. cloudflared 產生 `https://<隨機名稱>.trycloudflare.com` 後，TailClip 透過外部 HTTPS health 驗證本次隨機 session 挑戰，禁止重新導向；成功後才顯示可用及五分鐘 QR。網址尚未就緒／啟動失敗提供可理解的重試訊息，不假報已連線。
+1. 桌面使用者選簡易連線，TailBlink 啟動隨發行版附帶的固定版本 cloudflared；綁定 OS 分配的空閒 `127.0.0.1` 埠，只轉發 B 專用 handler。
+2. cloudflared 產生 `https://<隨機名稱>.trycloudflare.com` 後，TailBlink 透過外部 HTTPS health 驗證本次隨機 session 挑戰，禁止重新導向；成功後才顯示可用及五分鐘 QR。網址尚未就緒／啟動失敗提供可理解的重試訊息，不假報已連線。
 3. QR 為本次 HTTPS 下的短效配對頁網址。手機相機掃碼即可開頁；首次依序安裝兩支捷徑，再按「連接並取回」把短效配對資料交給簡易取回捷徑。可提供複製配對資料的備援操作；不把長期 Bearer 憑證放入 QR。
-4. 捷徑驗證配對資料的版本、transport、完整 HTTPS trycloudflare hostname 與票券格式，POST `/v1/pair` 交換本次 token；成功後保存 `TailClip-Simple/config.json` 並讀回驗證。只有成功才取代舊設定；同次取回可繼續執行。傳送收到配對資料時只配對，不誤送秘密。
+4. 捷徑驗證配對資料的版本、transport、完整 HTTPS trycloudflare hostname 與票券格式，POST `/v1/pair` 交換本次 token；成功後保存 `TailBlink-Simple/config.json` 並讀回驗證。只有成功才取代舊設定；同次取回可繼續執行。傳送收到配對資料時只配對，不誤送秘密。
    備援來源為剪貼簿時，成功保存並核對 token 後清除已消耗票券，避免空取回／網路失敗後下一次誤當新配對。從連結或分享輸入配對時不清除手機原文；配對失敗亦不清除。
 5. 日常傳送以 Share Sheet 文字優先，無分享輸入時讀剪貼簿；取回只有成功且非空才改寫剪貼簿。B 完全不呼叫 Tailscale 動作。網路失敗不自動重送 POST、不清空剪貼簿。
 6. 每次新 cloudflared 程序建立新的 session、票券及 token；重開機、程序結束／崩潰、切換入口後重建均須重掃。相同程序的短暫斷線由 cloudflared 重連；不承諾不關機就永遠有效。程序退出立即清除可用狀態、QR 與舊憑證，桌面按重新連接取得新 QR。
 7. 配對與憑證僅保存在桌面記憶體，隨 tunnel 結束失效；手機保存本次設定。解除連接立即撤銷 token 與票券；產生新 QR 不先撤銷仍有效的舊配對，新票券成功使用才取代。
-8. TailClip 正常結束、切回 A 或解除安裝時終止自己的 cloudflared 子程序、關閉 B listener；不以全域程序名稱終止其他使用者隧道。Windows 使用 Job Object 確保 Agent 異常退出時子程序不殘留。
+8. TailBlink 正常結束、切回 A 或解除安裝時終止自己的 cloudflared 子程序、關閉 B listener；不以全域程序名稱終止其他使用者隧道。Windows 使用 Job Object 確保 Agent 異常退出時子程序不殘留。
 
 ### 13.3 API 與邊界
 
 - 僅開放本次 session 的 health、配對頁、兩支簡易捷徑下載、`POST /v1/pair` 及原文字 status／clipboard API；不得直接代理 Agent、dashboard、`/local/*` 或 A 的配對管理。
 - B 配對 JSON：`{version:1, transport:"cloudflare", base_url:"https://<host>.trycloudflare.com/v1", ticket:"<43字元>"}`。配對回傳 `{ok:true, version:1, transport:"cloudflare", base_url, token, device_name}`。桌面 QR 與票券五分鐘有效、一次使用、防重放；未知欄位／無效版本拒絕；`/pair` 兼容原生捷徑 JSON 欄位輸出的數字 `1` 與字串 `"1"`。
 - 所有 B 文字 API 需要本次隨機高熵 Bearer token；B 不接受 Tailscale 身分 header 作授權，不 fallback 至 A token。HTTP Host 必須符合本次 tunnel 名稱；本機仍屬使用者 session 的信任邊界。
-- 公開 API 拒絕 Origin／Fetch Metadata 跨站請求，配對頁 GET 與下載例外；配對嘗試需限流。網頁無第三方資源，回應 no-store、no-referrer；不輸出票券、完整配對網址、token 或文字到日誌。cloudflared 原始輸出只解析網址、不寫入 TailClip 日誌。
+- 公開 API 拒絕 Origin／Fetch Metadata 跨站請求，配對頁 GET 與下載例外；配對嘗試需限流。網頁無第三方資源，回應 no-store、no-referrer；不輸出票券、完整配對網址、token 或文字到日誌。cloudflared 原始輸出只解析網址、不寫入 TailBlink 日誌。
 - 沿用 UTF-8、1 MiB、空值及剪貼簿占用處理；原生捷徑始終明確指定 URL／Dictionary action 與資料來源。配對資料不能作為一般文字傳送。
 - A/B 只啟用選定模式，保存模式欄位；切換回 A 保留原 Serve／token／捷徑。B 使用獨立臨時 listener，絕不將 A 管理路由暴露到 Cloudflare。
 
 ### 13.4 封裝與相容性
 
 - Windows／Linux 發行包附固定版本且 SHA-256 核對的官方 cloudflared、授權文件及兩支新簡易捷徑；A 的原始兩支捷徑保持 byte-for-byte 不變。
-- cloudflared 以帶版本／內容識別的專用檔名安裝在 TailClip 專用位置，Windows 自我安裝同步複製；已有相同檔案不覆寫執行中映像。啟動前驗證 hash，檔案缺少／損壞顯示重新解壓完整發行包提示，不要求使用者自行搜尋下載。
+- cloudflared 以帶版本／內容識別的專用檔名安裝在 TailBlink 專用位置，Windows 自我安裝同步複製；已有相同檔案不覆寫執行中映像。啟動前驗證 hash，檔案缺少／損壞顯示重新解壓完整發行包提示，不要求使用者自行搜尋下載。
 - CI 與本機使用同一封裝腳本，檢查每個必要檔案、版本與所有 checksum；僅本機建置交付，本次未授權 push／GitHub Release 操作。
 - Windows 亦可封裝 Linux 成品：文字檔固定 UTF-8／LF，tar 明訂執行檔／腳本 0755、其他檔案 0644，重新開啟 tar 時須同時核對內容、權限與換行，不沿用建置主機的檔案模式。
 - 移除不再使用的 Tailcat transport、身分儲存與依賴。舊 `simple.state` 不再讀取，不需遷移秘密；B 升級後本來就須重新配對。不破壞 A 設定。
@@ -565,10 +579,10 @@ M2 僅執行第 13、14 節的單主機雙入口；未採用的 issue #1／#4 �
 - Windows `go test -count=1 ./...`、`go vet ./...` 通過；新增真實發行包檔案安裝測試，涵蓋中文／空白路徑、自我複製、companion SHA-256、重複安裝不覆寫依賴與安裝後 EXE 執行。此測試不等同通知區、UAC、自啟或完整解除安裝實機驗收。
 - 在獨立非互動 Window Station 執行原生剪貼簿測試：100 輪 Unicode 讀寫、90 個並行操作、占用取消／恢復與持續占用上限全部通過；未改寫使用者互動桌面的剪貼簿。隔離方式依 Microsoft 的 Window Station／Desktop API，沒有修改系統權限。
 - Debian 13 容器 `go test -race ./...` 與無 Tailscale 安裝／更新／移除腳本通過；12 項捷徑 Python 測試、2 項跨平台封裝回歸通過。格式檢查按 Git 文字內容的 LF 核對，避免將 Windows checkout 的 CRLF 視為程式格式差異。
-- Windows 實網測試發現新 trycloudflare 名稱在首次查詢的 DNS 伺服器出現負向快取，90 秒內可能持續回覆 NXDOMAIN；其他尚未快取的 resolver 可解析。原程式正確拒絕顯示尚未驗證的 QR 並清理隧道。隔離診斷使用指定 DNS，未修改 Windows DNS、既有 TailClip 配對、自啟或 Tailscale Serve；不能把指定 DNS 的診斷結果視為本機預設網路已通過。
+- Windows 實網測試發現新 trycloudflare 名稱在首次查詢的 DNS 伺服器出現負向快取，90 秒內可能持續回覆 NXDOMAIN；其他尚未快取的 resolver 可解析。原程式正確拒絕顯示尚未驗證的 QR 並清理隧道。隔離診斷使用指定 DNS，未修改 Windows DNS、既有 TailBlink 配對、自啟或 Tailscale Serve；不能把指定 DNS 的診斷結果視為本機預設網路已通過。
 - Windows 指定 DNS 的真實 Cloudflare HTTPS／記憶體剪貼簿測試通過：外部 health session 驗證、配對、重放拒絕、Unicode 多行、1 MiB／超量、錯 token、管理路由隔離、空取回、撤銷及重新配對。這是 Go API 執行結果，不等同 iPhone 捷徑執行。
 - 第二輪 reviewer 找到新增原生空值案例未重設後續憑證案例 fixture 的 P2，已補上案例自己的初始內容；沒有拒絕任何 finding。
 - 第三輪聚焦複審為 `No findings`，最終未解決 P0／P1／P2／P3 均為 0；新增原生捷徑案例未執行的驗收缺口仍保留，不以 code review 代替實機結果。
-- alpha.2 Windows／Linux 最終包由乾淨來源 `11837941d90a8a5c64a9e860cbb173a9f687053a` 建置，兩個 binary 均為 `vcs.modified=false`。Windows ZIP 14 檔／companion／四支捷徑校驗通過，最終 EXE 在中文空白安裝路徑可執行；Linux tar 在 Debian 13 解壓後全檔 checksum、0755 執行權限、TailClip 與 cloudflared 版本指令通過。Windows ZIP SHA-256：`7c25fbab8f0223789024932d9fabe8b616d124bb6957fc1b90afec61800947b0`。
+- alpha.2 Windows／Linux 最終包由乾淨來源 `11837941d90a8a5c64a9e860cbb173a9f687053a` 建置，兩個 binary 均為 `vcs.modified=false`。Windows ZIP 14 檔／companion／四支捷徑校驗通過，最終 EXE 在中文空白安裝路徑可執行；Linux tar 在 Debian 13 解壓後全檔 checksum、0755 執行權限、TailBlink 與 cloudflared 版本指令通過。Windows ZIP SHA-256：`7c25fbab8f0223789024932d9fabe8b616d124bb6957fc1b90afec61800947b0`。
 - Mac 簽署暫存已按本次檔案清單移除；Windows 測試的臨時隧道／程序已停止，既有使用者安裝保持運作。兩個平台交付包保留於 dist，Git 仍只追蹤 Windows ZIP 與 checksum。
 - 本次 Mac 僅完成重簽與解封內容核對；透過 SSH 的 System Events 查詢逾時，未取得原生匯入／UI 操作條件，新增兩個捷徑原生案例尚未執行。iPhone、Windows 通知區／UAC／登入重開機與 GNOME Wayland 完整矩陣仍未驗收。

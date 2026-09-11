@@ -16,10 +16,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kuanfu0430/tailclip/internal/api"
-	"github.com/kuanfu0430/tailclip/internal/clipboard"
-	"github.com/kuanfu0430/tailclip/internal/config"
-	"github.com/kuanfu0430/tailclip/internal/tunnel"
+	"github.com/kuanfu0430/tailblink/internal/api"
+	"github.com/kuanfu0430/tailblink/internal/clipboard"
+	"github.com/kuanfu0430/tailblink/internal/config"
+	"github.com/kuanfu0430/tailblink/internal/tunnel"
 )
 
 type Pairing struct {
@@ -228,7 +228,7 @@ func (s *Service) verify(ctx context.Context, base, session string, done <-chan 
 			}
 			err = json.NewDecoder(io.LimitReader(resp.Body, 4096)).Decode(&body)
 			resp.Body.Close()
-			if resp.StatusCode == 200 && err == nil && body.Service == "tailclip-simple" && body.Session == session {
+			if resp.StatusCode == 200 && err == nil && body.Service == "tailblink-simple" && body.Session == session {
 				return nil
 			}
 		}
@@ -338,7 +338,7 @@ func (s *Service) serveBuffered(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if r.URL.Path == "/v1/health" && r.Method == "GET" {
-		simpleJSON(w, 200, map[string]any{"service": "tailclip-simple", "session": s.session})
+		simpleJSON(w, 200, map[string]any{"service": "tailblink-simple", "session": s.session})
 		return
 	}
 	if !s.active || !s.ready {

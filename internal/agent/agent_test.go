@@ -12,10 +12,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kuanfu0430/tailclip/internal/clipboard"
-	"github.com/kuanfu0430/tailclip/internal/config"
-	"github.com/kuanfu0430/tailclip/internal/tailscale"
-	"github.com/kuanfu0430/tailclip/internal/webui"
+	"github.com/kuanfu0430/tailblink/internal/clipboard"
+	"github.com/kuanfu0430/tailblink/internal/config"
+	"github.com/kuanfu0430/tailblink/internal/tailscale"
+	"github.com/kuanfu0430/tailblink/internal/webui"
 )
 
 type fakeTailnet struct{ status tailscale.Status }

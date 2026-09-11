@@ -11,10 +11,10 @@ import (
 )
 
 func TestJobChild(t *testing.T) {
-	if os.Getenv("TAILCLIP_JOB_CHILD") != "1" {
+	if os.Getenv("TAILBLINK_JOB_CHILD") != "1" {
 		return
 	}
-	if err := os.WriteFile(os.Getenv("TAILCLIP_JOB_READY"), []byte("ready"), 0600); err != nil {
+	if err := os.WriteFile(os.Getenv("TAILBLINK_JOB_READY"), []byte("ready"), 0600); err != nil {
 		t.Fatal(err)
 	}
 	for {
@@ -28,7 +28,7 @@ func TestJobCloseTerminatesChild(t *testing.T) {
 	}
 	cmd := exec.Command(exe, "-test.run=^TestJobChild$")
 	ready := filepath.Join(t.TempDir(), "ready")
-	cmd.Env = append(os.Environ(), "TAILCLIP_JOB_CHILD=1", "TAILCLIP_JOB_READY="+ready)
+	cmd.Env = append(os.Environ(), "TAILBLINK_JOB_CHILD=1", "TAILBLINK_JOB_READY="+ready)
 	cleanup, err := prepareProcess(cmd)
 	if err != nil {
 		t.Fatal(err)

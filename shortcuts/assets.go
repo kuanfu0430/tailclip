@@ -4,15 +4,15 @@ package shortcutassets
 import _ "embed"
 
 var (
-	//go:embed dist/TailClip-Simple-Send.shortcut
+	//go:embed dist/TailBlink-Simple-Send.shortcut
 	SimpleSend []byte
 
-	//go:embed dist/TailClip-Simple-Pull.shortcut
+	//go:embed dist/TailBlink-Simple-Pull.shortcut
 	SimplePull []byte
 
-	//go:embed dist/TailClip-Send.shortcut
+	//go:embed dist/TailBlink-Send.shortcut
 	Send []byte
 
-	//go:embed dist/TailClip-Pull.shortcut
+	//go:embed dist/TailBlink-Pull.shortcut
 	Pull []byte
 )

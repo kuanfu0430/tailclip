@@ -9,12 +9,12 @@ import uuid
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
-CONFIG_PATH = "TailClip/config.json"
-BASE_PATTERN = r"\Ahttps://[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?)+\.ts\.net/tailclip/v1\z"
+CONFIG_PATH = "TailBlink/config.json"
+BASE_PATTERN = r"\Ahttps://[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?)+\.ts\.net/tailblink/v1\z"
 TOKEN_PATTERN = r"\A[A-Za-z0-9_-]{43}\z"
 # 僅識別配對意圖，真正的欄位驗證在 JSON 解析後進行。
 PAIRING_PATTERN = r'(?s)\A\s*\{(?=.*"base_url"\s*:)(?=.*"token"\s*:).*\}\s*\z'
-PAIRING_HELP = "配對資料無效或尚未設定。請回到電腦掃描 TailClip QR，按「複製配對資料」，再執行本捷徑。"
+PAIRING_HELP = "配對資料無效或尚未設定。請回到電腦掃描 TailBlink QR，按「複製配對資料」，再執行本捷徑。"
 
 
 def attachment(value: dict) -> dict:
@@ -51,7 +51,7 @@ class Workflow:
         self.actions = []
 
     def uid(self, label: str) -> str:
-        return str(uuid.uuid5(uuid.NAMESPACE_URL, f"tailclip/alpha6/{self.direction}/{label}")).upper()
+        return str(uuid.uuid5(uuid.NAMESPACE_URL, f"tailblink/alpha6/{self.direction}/{label}")).upper()
 
     def action(self, kind: str, label: str, **params) -> dict:
         identifier = kind if kind.startswith("io.") else "is.workflow.actions." + kind
@@ -89,7 +89,7 @@ class Workflow:
                            GroupingIdentifier=self.uid(label))
 
     def stop(self, label, *message):
-        self.action("notification", label + "/notice", WFNotificationActionTitle="TailClip",
+        self.action("notification", label + "/notice", WFNotificationActionTitle="TailBlink",
                     WFNotificationActionBody=rich(*message), WFNotificationActionSound=False)
         self.action("exit", label + "/stop")
 
@@ -121,7 +121,7 @@ class Workflow:
         self.begin(label + "/error-message", error)
         self.stop(label + "/api-error", error)
         self.otherwise(label + "/error-message")
-        self.stop(label + "/invalid-response", "電腦回應無效。請確認 Tailscale 與 TailClip 已啟動；若配對失效，請重新掃描 QR 並複製配對資料。")
+        self.stop(label + "/invalid-response", "電腦回應無效。請確認 Tailscale 與 TailBlink 已啟動；若配對失效，請重新掃描 QR 並複製配對資料。")
         self.end(label + "/error-message")
         self.end(label + "/success")
         return parsed
@@ -133,8 +133,8 @@ def build(direction: str, *, config_path=CONFIG_PATH, base_pattern=BASE_PATTERN,
         raise ValueError(direction)
     w = Workflow(direction)
     w.action("comment", "about", WFCommentActionText=
-             "TailClip alpha.6｜傳送／取回純文字。首次使用請先在電腦配對頁複製配對資料。\n"
-             "重新配對：複製新的配對資料再執行。連線錯誤：確認兩台裝置的 Tailscale 與電腦 TailClip 已啟動。")
+             "TailBlink alpha.6｜傳送／取回純文字。首次使用請先在電腦配對頁複製配對資料。\n"
+             "重新配對：複製新的配對資料再執行。連線錯誤：確認兩台裝置的 Tailscale 與電腦 TailBlink 已啟動。")
     clip = w.action("getclipboard", "clipboard")
     clip_text = w.action("detect.text", "clipboard-text", WFInput=clip)
     pairing = w.match("pairing-candidate", clip_text, PAIRING_PATTERN)
@@ -179,7 +179,7 @@ def build(direction: str, *, config_path=CONFIG_PATH, base_pattern=BASE_PATTERN,
     empty = w.text("clear-pairing", "")
     w.action("setclipboard", "clear-clipboard", WFInput=empty, WFLocalOnly=True)
     if direction == "send":
-        w.stop("paired", "配對完成。請複製要傳送的文字，或從分享選單再次執行「TailClip：傳送」。")
+        w.stop("paired", "配對完成。請複製要傳送的文字，或從分享選單再次執行「TailBlink：傳送」。")
     w.end("pair")
     if direction == "send":
         shortcut_input = attachment({"Type": "ExtensionInput"})
@@ -204,12 +204,12 @@ def build(direction: str, *, config_path=CONFIG_PATH, base_pattern=BASE_PATTERN,
         w.end("empty-result")
         w.action("setclipboard", "received-clipboard", WFInput=received, WFLocalOnly=True)
     device = w.value("device-name", response, "device_name")
-    w.action("notification", "success", WFNotificationActionTitle="TailClip",
+    w.action("notification", "success", WFNotificationActionTitle="TailBlink",
              WFNotificationActionBody=rich("已傳到「" if direction == "send" else "已從「", device,
                                            "」" if direction == "send" else "」取回"),
              WFNotificationActionSound=False)
     return {
-        "WFWorkflowName": "TailClip：傳送" if direction == "send" else "TailClip：取回",
+        "WFWorkflowName": "TailBlink：傳送" if direction == "send" else "TailBlink：取回",
         "WFWorkflowClientVersion": "3036.0.4.2", "WFWorkflowMinimumClientVersion": 1106,
         "WFWorkflowMinimumClientVersionString": "1106",
         "WFWorkflowIcon": {"WFWorkflowIconStartColor": 431817727, "WFWorkflowIconGlyphNumber": 61440},
@@ -228,7 +228,7 @@ def main():
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=True)
     for direction in ("send", "pull"):
-        path = args.output / f"TailClip-{direction.title()}-unsigned.shortcut"
+        path = args.output / f"TailBlink-{direction.title()}-unsigned.shortcut"
         path.write_bytes(plistlib.dumps(build(direction), fmt=plistlib.FMT_BINARY, sort_keys=True))
         print(path)
 

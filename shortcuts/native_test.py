@@ -13,8 +13,8 @@ from pathlib import Path
 from build import ROOT, build
 from sign import command
 
-QA_PATH = "TailClip-QA-20260905/config.json"
-QA_PATTERN = r"\Ahttp://127\.0\.0\.1:[0-9]+/tailclip/v1\z"
+QA_PATH = "TailBlink-QA-20260905/config.json"
+QA_PATTERN = r"\Ahttp://127\.0\.0\.1:[0-9]+/tailblink/v1\z"
 ICLOUD = Path.home() / "Library/Mobile Documents/iCloud~is~workflow~my~workflows/Documents"
 
 
@@ -31,7 +31,7 @@ def prepare(output):
                 action["WFWorkflowActionParameters"] = {
                     "WFOutput": params["WFNotificationActionBody"], "UUID": params["UUID"]}
         unsigned = output / f"{direction}-unsigned.shortcut"
-        signed = output / f"TailClip-QA-{direction.title()}.shortcut"
+        signed = output / f"TailBlink-QA-{direction.title()}.shortcut"
         unsigned.write_bytes(plistlib.dumps(workflow, fmt=plistlib.FMT_BINARY, sort_keys=True))
         command(["shortcuts", "sign", "--mode", "anyone", "--input", str(unsigned), "--output", str(signed)])
         print(f"請匯入：{signed}")
@@ -89,14 +89,14 @@ class Suite:
         assert "配對完成" in self.run_shortcut("send")
         assert json.loads(self.config.read_text()) == self.pairing
         assert self.clipboard() == ""
-        assert self.fixture() == {"text": "桌面原文", "requests": ["GET /tailclip/v1/status"]}
+        assert self.fixture() == {"text": "桌面原文", "requests": ["GET /tailblink/v1/status"]}
 
     def send(self, text, share=True):
         self.save_config()
         self.fixture("不應保留")
         self.clipboard("分享輸入應優先" if share else text)
         assert "已傳到" in self.run_shortcut("send", text if share else None)
-        assert self.fixture() == {"text": text, "requests": ["POST /tailclip/v1/clipboard/text"]}
+        assert self.fixture() == {"text": text, "requests": ["POST /tailblink/v1/clipboard/text"]}
         assert self.clipboard() == ("分享輸入應優先" if share else text)
 
     def pull(self, text):
@@ -106,7 +106,7 @@ class Suite:
         message = self.run_shortcut("pull")
         assert ("已從" if text else "沒有文字") in message
         assert self.clipboard() == (text or "手機原文")
-        assert self.fixture()["requests"] == ["GET /tailclip/v1/clipboard/text"]
+        assert self.fixture()["requests"] == ["GET /tailblink/v1/clipboard/text"]
 
     def reject_send(self, text, expected, requests):
         self.save_config()
@@ -135,7 +135,7 @@ class Suite:
         assert self.config.read_bytes() == before
         assert self.clipboard() == clip
         route = "/status" if pairing else "/clipboard/text"
-        assert self.fixture() == {"text": "桌面原文", "requests": ["GET /tailclip/v1" + route]}
+        assert self.fixture() == {"text": "桌面原文", "requests": ["GET /tailblink/v1" + route]}
 
     def repair_and_pull(self):
         self.config.write_text("損壞的舊設定")
@@ -144,7 +144,7 @@ class Suite:
         assert "已從" in self.run_shortcut("pull")
         assert self.clipboard() == "重新配對後取回 🐾"
         assert json.loads(self.config.read_text()) == self.pairing
-        assert self.fixture()["requests"] == ["GET /tailclip/v1/status", "GET /tailclip/v1/clipboard/text"]
+        assert self.fixture()["requests"] == ["GET /tailblink/v1/status", "GET /tailblink/v1/clipboard/text"]
 
     def run(self):
         self.check("首次配對與 config.json 寫入／讀回，憑證不傳送", self.pairing_send)
@@ -156,7 +156,7 @@ class Suite:
         self.check("空傳送不發出請求", lambda: self.reject_send(None, "沒有可傳送", []))
         self.check("分享配對憑證不外送", lambda: self.reject_send(json.dumps(self.pairing), "配對資料", []))
         self.check("1 MiB 傳送", lambda: self.send("🐾" * (1048576 // 4)))
-        self.check("超過 1 MiB 不覆寫桌面", lambda: self.reject_send("a" * 1048577, "超過 1 MiB", ["POST /tailclip/v1/clipboard/text"]))
+        self.check("超過 1 MiB 不覆寫桌面", lambda: self.reject_send("a" * 1048577, "超過 1 MiB", ["POST /tailblink/v1/clipboard/text"]))
         for key, value in (("base_url", ""), ("base_url", "/status"), ("token", ""), ("version", 2)):
             self.check(f"無效設定 {key}={value!r} 在 HTTP 前停止", lambda k=key, v=value: self.invalid_config(k, v))
         self.check("失效 token 不覆寫手機", self.unauthorized)
@@ -169,13 +169,13 @@ def main():
     parser.add_argument("mode", choices=("prepare", "run"))
     parser.add_argument("--output", type=Path, default=ROOT.parent / "build/shortcuts/native")
     parser.add_argument("--state", type=Path, default=ROOT.parent / "build/shortcuts/native/state.json")
-    parser.add_argument("--send-name", default="TailClip-QA-Send")
-    parser.add_argument("--pull-name", default="TailClip-QA-Pull")
+    parser.add_argument("--send-name", default="TailBlink-QA-Send")
+    parser.add_argument("--pull-name", default="TailBlink-QA-Pull")
     args = parser.parse_args()
     if args.mode == "prepare":
         prepare(args.output)
         return
-    with tempfile.TemporaryDirectory(prefix="tailclip-native-") as tmp:
+    with tempfile.TemporaryDirectory(prefix="tailblink-native-") as tmp:
         executable = Path(tmp) / "clipboard"
         command(["swiftc", str(ROOT / "testing/clipboard.swift"), "-o", str(executable)])
         backup = Path(tmp) / "clipboard.plist"

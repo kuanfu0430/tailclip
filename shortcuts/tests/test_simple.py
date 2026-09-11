@@ -28,7 +28,7 @@ class SimpleTests(unittest.TestCase):
  def test_signed_source_manifest(self):
   root=Path(__file__).resolve().parents[1];manifest=json.loads((root/'dist/simple-manifest.json').read_text())
   for d in ('send','pull'):
-   name=f'TailClip-Simple-{d.title()}.shortcut';raw=plistlib.dumps(build_simple(d),fmt=plistlib.FMT_BINARY,sort_keys=True)
+   name=f'TailBlink-Simple-{d.title()}.shortcut';raw=plistlib.dumps(build_simple(d),fmt=plistlib.FMT_BINARY,sort_keys=True)
    self.assertEqual(hashlib.sha256(raw).hexdigest(),manifest[name]['source_sha256'])
    self.assertEqual(hashlib.sha256((root/'dist'/name).read_bytes()).hexdigest(),manifest[name]['artifact_sha256'])
  def test_consumed_clipboard_ticket_cleared_only_after_verified_pairing(self):
@@ -48,5 +48,5 @@ class SimpleTests(unittest.TestCase):
   pattern=BASE_PATTERN.replace(r'\z',r'\Z');good='https://quiet-river.trycloudflare.com/v1'
   self.assertIsNotNone(re.fullmatch(pattern,good))
   for bad in (good+'/',good+'?x=1',good.replace('https:','http:'),good.replace('.com/','.com.evil/'),good.replace('quiet-river','user@quiet-river'),good.replace('.com/', '.com:443/')):self.assertIsNone(re.fullmatch(pattern,bad))
-  self.assertNotEqual(CONFIG_PATH,'TailClip/config.json')
+  self.assertNotEqual(CONFIG_PATH,'TailBlink/config.json')
 if __name__=='__main__':unittest.main()

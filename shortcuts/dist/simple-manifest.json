@@ -1,12 +1,12 @@
 {
-  "TailClip-Simple-Send.shortcut": {
-    "source_sha256": "26507096e423af1f25db26c47032982ba22e2079b2dfe0b5161875d2bd4f7213",
-    "artifact_sha256": "59f3e636f16586d774cf4ecf22c70659038be002d8276e7d6554b789cb0a5454",
+  "TailBlink-Simple-Send.shortcut": {
+    "source_sha256": "b1f2ccab6e44dc59d6dc0c94a56d36706adbb8827515641e3af0aca0eb34fdd9",
+    "artifact_sha256": "2d752557195a8914428de68470b002b3b098094b02764cefb3bb388a270d5672",
     "actions": 145
   },
-  "TailClip-Simple-Pull.shortcut": {
-    "source_sha256": "f07de5912951dd22f5efab9e004dd438260a7704926a87143d110c4f9506cfa2",
-    "artifact_sha256": "0491c4ca409fe4c2bb5c43155b0e937ffb0c3597ece79658c7522d541ba1cf5c",
+  "TailBlink-Simple-Pull.shortcut": {
+    "source_sha256": "8821dfc067f6c69674920f4887c094ec7635819a1a0ea8c65be3ccebd6d1b8a6",
+    "artifact_sha256": "342ef08e406b37ed6f9807359b1fadff879ed5a3110a99549646aebf34212158",
     "actions": 135
   }
 }

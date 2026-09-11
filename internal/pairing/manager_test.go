@@ -9,7 +9,7 @@ import (
 func validData() Data {
 	return Data{
 		Version:         1,
-		BaseURL:         "https://work-pc.example.ts.net/tailclip/v1",
+		BaseURL:         "https://work-pc.example.ts.net/tailblink/v1",
 		Token:           "secret",
 		DeviceName:      "工作電腦",
 		TailscaleDevice: "work-pc",
@@ -40,10 +40,10 @@ func TestSessionEntropyAndExpiry(t *testing.T) {
 func TestRejectUnsafeBaseURL(t *testing.T) {
 	data := validData()
 	for _, rawURL := range []string{
-		"http://work-pc.example.ts.net/tailclip/v1",
-		"https://example.com/tailclip/v1",
+		"http://work-pc.example.ts.net/tailblink/v1",
+		"https://example.com/tailblink/v1",
 		"https://work-pc.example.ts.net/other",
-		"https://work-pc.example.ts.net/tailclip/v1?token=x",
+		"https://work-pc.example.ts.net/tailblink/v1?token=x",
 	} {
 		data.BaseURL = rawURL
 		if err := ValidateData(data); err == nil {

@@ -8,7 +8,7 @@ import (
 )
 
 func TestRotatesAtCap(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "tailclip.log")
+	path := filepath.Join(t.TempDir(), "tailblink.log")
 	writer, err := newRotatingWriter(path, 32)
 	if err != nil {
 		t.Fatal(err)

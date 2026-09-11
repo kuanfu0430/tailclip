@@ -79,9 +79,9 @@ class BuildTests(unittest.TestCase):
 
     def test_url_boundary_and_token_format(self):
         pattern = BASE_PATTERN.replace(r"\z", r"\Z")
-        good = "https://work-pc.example.ts.net/tailclip/v1"
+        good = "https://work-pc.example.ts.net/tailblink/v1"
         self.assertIsNotNone(re.fullmatch(pattern, good))
-        for bad in ("", "/status", "https://ts.net/tailclip/v1", good + "\n", good + "/",
+        for bad in ("", "/status", "https://ts.net/tailblink/v1", good + "\n", good + "/",
                     good + "?redirect=evil", good.replace("https:", "http:"),
                     good.replace("example.ts.net", "example.ts.net.evil.com"),
                     good.replace("work-pc", "user@work-pc"), good.replace("work-pc", "-bad"),
@@ -113,7 +113,7 @@ class BuildTests(unittest.TestCase):
         manifest = json.loads((ROOT / "dist" / "manifest.json").read_text())
         for direction in ("send", "pull"):
             workflow = build(direction)
-            filename = f"TailClip-{direction.title()}.shortcut"
+            filename = f"TailBlink-{direction.title()}.shortcut"
             source = plistlib.dumps(workflow, fmt=plistlib.FMT_BINARY, sort_keys=True)
             artifact = (ROOT / "dist" / filename).read_bytes()
             self.assertEqual(artifact[:4], b"AEA1")

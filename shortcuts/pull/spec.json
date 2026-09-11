@@ -1,5 +1,5 @@
 {
-  "name": "TailClip：取回",
+  "name": "TailBlink：取回",
   "goal": "以一次手動動作取回已配對電腦的純文字。",
   "implementation": "../build.py（共用原生流程；本檔列出邏輯群組）",
   "trigger": {
@@ -47,7 +47,7 @@
       "label": "If / Get File / Get Text",
       "purpose": "沒有新配對時讀取共用 config.json；不存在則提示並停止。",
       "params": {
-        "path": "TailClip/config.json",
+        "path": "TailBlink/config.json",
         "error_if_not_found": false
       }
     },
@@ -57,7 +57,7 @@
       "purpose": "合併分支後解析一次，所有欄位取值明確指向該辭典；驗證通過才建立 URL。",
       "params": {
         "version": 1,
-        "base_url": "https://<device>.<tailnet>.ts.net/tailclip/v1",
+        "base_url": "https://<device>.<tailnet>.ts.net/tailblink/v1",
         "token": "43 個 base64url 字元"
       }
     },
@@ -87,7 +87,7 @@
       "params": {
         "name": "config.json",
         "dont_include_extension": false,
-        "path": "TailClip/config.json",
+        "path": "TailBlink/config.json",
         "overwrite": true,
         "ask_where_to_save": false
       }
@@ -154,7 +154,7 @@
   ],
   "side_effects": [
     "請求 Tailscale 連線",
-    "配對成功後保存 iCloud Drive/Shortcuts/TailClip/config.json 並清除本機剪貼簿憑證",
+    "配對成功後保存 iCloud Drive/Shortcuts/TailBlink/config.json 並清除本機剪貼簿憑證",
     "發送 HTTPS request",
     "以 Local Only 覆寫手機文字剪貼簿",
     "本機通知"

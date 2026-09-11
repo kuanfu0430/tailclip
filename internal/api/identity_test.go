@@ -7,7 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/kuanfu0430/tailclip/internal/config"
+	"github.com/kuanfu0430/tailblink/internal/config"
 )
 
 func TestIdentityAuthorizationDoesNotFallBackOrReadClipboard(t *testing.T) {

@@ -84,7 +84,7 @@ func DefaultPath() (string, error) {
 		if base == "" {
 			return "", errors.New("找不到 LOCALAPPDATA")
 		}
-		return filepath.Join(base, "TailClip", "config.json"), nil
+		return filepath.Join(base, "TailBlink", "config.json"), nil
 	}
 
 	base := os.Getenv("XDG_CONFIG_HOME")
@@ -95,7 +95,7 @@ func DefaultPath() (string, error) {
 		}
 		base = filepath.Join(home, ".config")
 	}
-	return filepath.Join(base, "tailclip", "config.json"), nil
+	return filepath.Join(base, "tailblink", "config.json"), nil
 }
 
 func Load(path string) (Config, error) {
@@ -130,7 +130,7 @@ func LoadOrCreate(path string) (Config, bool, error) {
 
 	hostname, hostErr := os.Hostname()
 	if hostErr != nil || strings.TrimSpace(hostname) == "" {
-		hostname = "TailClip 電腦"
+		hostname = "TailBlink 電腦"
 	}
 	hostname = strings.TrimSuffix(strings.TrimSpace(hostname), ".")
 	if dot := strings.IndexByte(hostname, '.'); dot > 0 {

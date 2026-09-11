@@ -6,16 +6,16 @@ from build_simple import build_simple
 from native_test import Suite,ICLOUD
 from sign import command
 ROOT=Path(__file__).resolve().parent
-QA_PATH='TailClip-QA-Simple-20260907/config.json'
+QA_PATH='TailBlink-QA-Simple-20260907/config.json'
 def prepare(output):
  output.mkdir(parents=True,exist_ok=True)
  for d in ('send','pull'):
   workflow=build_simple(d,config_path=QA_PATH)
-  workflow['WFWorkflowName']=f'TailClip-QA-Simple-{d.title()}'
+  workflow['WFWorkflowName']=f'TailBlink-QA-Simple-{d.title()}'
   for a in workflow['WFWorkflowActions']:
    if a['WFWorkflowActionIdentifier'].endswith('.notification'):
     p=a['WFWorkflowActionParameters'];a['WFWorkflowActionIdentifier']='is.workflow.actions.output';a['WFWorkflowActionParameters']={'WFOutput':p['WFNotificationActionBody'],'UUID':p['UUID']}
-  source=output/f'{d}-unsigned.shortcut';target=output/f'TailClip-QA-Simple-{d.title()}.shortcut';source.write_bytes(plistlib.dumps(workflow,fmt=plistlib.FMT_BINARY,sort_keys=True))
+  source=output/f'{d}-unsigned.shortcut';target=output/f'TailBlink-QA-Simple-{d.title()}.shortcut';source.write_bytes(plistlib.dumps(workflow,fmt=plistlib.FMT_BINARY,sort_keys=True))
   command(['shortcuts','sign','--mode','anyone','--input',str(source),'--output',str(target)])
 class SimpleSuite(Suite):
  def __init__(self,args,temp):
@@ -48,9 +48,9 @@ class SimpleSuite(Suite):
   self.passed.append('無效設定在 HTTP 前拒絕');self.config.write_text(json.dumps(saved))
   urllib.request.urlopen(urllib.request.Request(self.state['url']+'/revoke',data=b''),timeout=5).close();self.clipboard('保留');assert '配對已失效' in self.run_shortcut('pull');assert self.clipboard()=='保留';self.passed.append('撤銷配對後拒絕且保留剪貼簿')
 def main():
- p=argparse.ArgumentParser();p.add_argument('mode',choices=['prepare','run']);p.add_argument('--output',type=Path,default=ROOT.parent/'build/shortcuts/simple-native');p.add_argument('--state',type=Path,default=ROOT.parent/'build/simple-state.json');p.add_argument('--send-name',default='TailClip-QA-Simple-Send');p.add_argument('--pull-name',default='TailClip-QA-Simple-Pull');args=p.parse_args()
+ p=argparse.ArgumentParser();p.add_argument('mode',choices=['prepare','run']);p.add_argument('--output',type=Path,default=ROOT.parent/'build/shortcuts/simple-native');p.add_argument('--state',type=Path,default=ROOT.parent/'build/simple-state.json');p.add_argument('--send-name',default='TailBlink-QA-Simple-Send');p.add_argument('--pull-name',default='TailBlink-QA-Simple-Pull');args=p.parse_args()
  if args.mode=='prepare':prepare(args.output);return
- with tempfile.TemporaryDirectory(prefix='tailclip-simple-qa-') as tmp:
+ with tempfile.TemporaryDirectory(prefix='tailblink-simple-qa-') as tmp:
   exe=Path(tmp)/'clipboard';backup=Path(tmp)/'clipboard.plist';command(['swiftc',str(ROOT/'testing/clipboard.swift'),'-o',str(exe)]);command([str(exe),'save',str(backup)]);suite=SimpleSuite(args,tmp)
   try:suite.run()
   finally:

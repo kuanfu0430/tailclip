@@ -92,7 +92,7 @@ func ValidateData(data Data) error {
 		return ErrInvalidBaseURL
 	}
 	host := strings.ToLower(u.Hostname())
-	if !strings.HasSuffix(host, ".ts.net") || u.Path != "/tailclip/v1" {
+	if !strings.HasSuffix(host, ".ts.net") || u.Path != "/tailblink/v1" {
 		return ErrInvalidBaseURL
 	}
 	return nil

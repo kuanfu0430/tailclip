@@ -15,9 +15,9 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/kuanfu0430/tailclip/internal/buildinfo"
-	"github.com/kuanfu0430/tailclip/internal/clipboard"
-	"github.com/kuanfu0430/tailclip/internal/config"
+	"github.com/kuanfu0430/tailblink/internal/buildinfo"
+	"github.com/kuanfu0430/tailblink/internal/clipboard"
+	"github.com/kuanfu0430/tailblink/internal/config"
 )
 
 const (
@@ -93,7 +93,7 @@ func (s *Server) health(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, http.StatusOK, map[string]any{
 		"status":        "ok",
-		"service":       "tailclip-agent",
+		"service":       "tailblink-agent",
 		"api_version":   1,
 		"agent_version": buildinfo.Version,
 		"capabilities":  capabilities,
@@ -260,7 +260,7 @@ func (s *Server) writeClipboard(w http.ResponseWriter, r *http.Request) {
 func (s *Server) writeClipboardError(w http.ResponseWriter, r *http.Request, err error) {
 	if errors.Is(err, clipboard.ErrBusy) {
 		setMetrics(r, 0, "clipboard_busy")
-		writeError(w, http.StatusServiceUnavailable, "clipboard_busy", "電腦剪貼簿暫時忙碌，請稍候再試。若持續發生，請重新啟動 TailClip。")
+		writeError(w, http.StatusServiceUnavailable, "clipboard_busy", "電腦剪貼簿暫時忙碌，請稍候再試。若持續發生，請重新啟動 TailBlink。")
 		return
 	}
 	if errors.Is(err, clipboard.ErrUnavailable) {
@@ -269,7 +269,7 @@ func (s *Server) writeClipboardError(w http.ResponseWriter, r *http.Request, err
 		return
 	}
 	setMetrics(r, 0, "internal_error")
-	writeError(w, http.StatusInternalServerError, "internal_error", "TailClip 暫時無法完成操作。")
+	writeError(w, http.StatusInternalServerError, "internal_error", "TailBlink 暫時無法完成操作。")
 }
 
 func (s *Server) log(direction string, bytesCount, status int, errorCode string, duration time.Duration) {

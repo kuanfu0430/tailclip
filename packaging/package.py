@@ -2,7 +2,7 @@
 """用相同腳本產生本機及 CI 發行包，釘選 cloudflared 並核對全部檔案。"""
 import argparse, hashlib, io, json, os, pathlib, shutil, subprocess, tarfile, urllib.request, zipfile
 ROOT=pathlib.Path(__file__).resolve().parents[1]
-SHORTCUTS=['TailClip-Send.shortcut','TailClip-Pull.shortcut','TailClip-Simple-Send.shortcut','TailClip-Simple-Pull.shortcut']
+SHORTCUTS=['TailBlink-Send.shortcut','TailBlink-Pull.shortcut','TailBlink-Simple-Send.shortcut','TailBlink-Simple-Pull.shortcut']
 
 def digest(data):return hashlib.sha256(data).hexdigest()
 def write_text(path,text):
@@ -34,7 +34,7 @@ def verify_files(files):
     assert digest(files[companion])==lock['sha256'],'封裝隧道版本不符'
 
 def executable(name):
-    return name in ('tailclip','TailClip.exe') or name.startswith('tailclip-cloudflared-') or name.endswith('.sh')
+    return name in ('tailblink','TailBlink.exe') or name.startswith('tailblink-cloudflared-') or name.endswith('.sh')
 
 def linux_entry(info):
     # 不沿用 Windows stat 的權限；tar 格式才是 Linux 安裝時的依據。
@@ -54,16 +54,16 @@ def package(version,platform,out):
     if stage.exists():shutil.rmtree(stage)
     stage.mkdir(parents=True)
     windows=platform=='windows-amd64'
-    binary='TailClip.exe' if windows else 'tailclip'
+    binary='TailBlink.exe' if windows else 'tailblink'
     env=os.environ.copy();env.update(GOOS='windows' if windows else 'linux',GOARCH='amd64',CGO_ENABLED='0')
-    flags=f'-s -w -X github.com/kuanfu0430/tailclip/internal/buildinfo.Version={version}'
+    flags=f'-s -w -X github.com/kuanfu0430/tailblink/internal/buildinfo.Version={version}'
     if windows:flags+=' -H=windowsgui'
-    subprocess.run(['go','build','-trimpath','-ldflags',flags,'-o',str(stage/binary),'./cmd/tailclip'],cwd=ROOT,env=env,check=True)
+    subprocess.run(['go','build','-trimpath','-ldflags',flags,'-o',str(stage/binary),'./cmd/tailblink'],cwd=ROOT,env=env,check=True)
     dep=dependency(platform);shutil.copy2(dep,stage/dep.name)
     write_text(stage/'CLOUDFLARED.txt',dep.name+'\n')
     shutil.copy2(ROOT/'packaging/LICENSE-cloudflared.txt',stage/'LICENSE-cloudflared.txt')
     for name in SHORTCUTS:shutil.copy2(ROOT/'shortcuts/dist'/name,stage/name)
-    names=['README-Windows.txt','Start-TailClip.cmd','Uninstall-TailClip.cmd'] if windows else ['install.sh','uninstall.sh','tailclip.service']
+    names=['README-Windows.txt','Start-TailBlink.cmd','Uninstall-TailBlink.cmd'] if windows else ['install.sh','uninstall.sh','tailblink.service']
     for name in names:shutil.copy2(ROOT/'packaging'/('windows' if windows else 'linux')/name,stage/name)
     if not windows:
         for file in stage.iterdir():
@@ -76,12 +76,12 @@ def package(version,platform,out):
     write_text(stage/'SHA256SUMS.txt',''.join(f'{digest(p.read_bytes())}  {p.name}\n' for p in sorted(stage.iterdir())))
     out.mkdir(parents=True,exist_ok=True)
     if windows:
-        result=out/f'TailClip-{version}-windows-x64.zip'
+        result=out/f'TailBlink-{version}-windows-x64.zip'
         with zipfile.ZipFile(result,'w',zipfile.ZIP_DEFLATED,compresslevel=9) as z:
             for p in sorted(stage.iterdir()):z.write(p,p.name)
         with zipfile.ZipFile(result) as z:verify_files({n:z.read(n) for n in z.namelist()})
     else:
-        result=out/f'TailClip-{version}-linux-x64.tar.gz'
+        result=out/f'TailBlink-{version}-linux-x64.tar.gz'
         with tarfile.open(result,'w:gz') as t:
             for p in sorted(stage.iterdir()):t.add(p,arcname=p.name,filter=linux_entry)
         with tarfile.open(result) as t:verify_linux_archive(t)
