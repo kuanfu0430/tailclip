@@ -472,21 +472,23 @@ Windows alpha 只有在「下載後雙擊一次、至多一次必要 UAC、iPhon
 
 ## 11. 發布
 
-- 第一個 tag：`v0.1.0-alpha.1`。
-- 第一個可下載測試包為 `v0.1.0-alpha.1`；目前 Windows build candidate 為 `v0.1.0-alpha.7`（本機建置，未發布 GitHub）。
-- alpha.6 本機 ZIP 由乾淨來源 commit `e644810` 建置，EXE 的 `vcs.modified=false`；Windows x64 GUI PE、兩支內嵌捷徑、ZIP 每檔 SHA-256 與 ASCII／CRLF 啟動腳本已核對。未執行 GitHub 發布或任何雲端倉庫操作。
-- alpha.7 本機 ZIP 由乾淨來源 commit `b4ecbd0` 建置，EXE 的 `vcs.modified=false`；已核對 Windows x64 GUI PE、8 個封裝檔案、內嵌捷徑與全檔 SHA-256。既有 alpha.6 捷徑直接相容，不需重新配對。
-- Git 追蹤的 Windows 測試產物：`dist/TailBlink-v0.1.0-alpha.7-windows-x64.zip` 及其 `.sha256`；舊版測試包保留供回歸比對。
-- GitHub Release artifacts：版本化 Windows x64 ZIP、Linux x86_64 tarball、兩支 signed Shortcuts 與 `SHA256SUMS`。
-- Windows ZIP 必須包含 `TailBlink.exe`、`README-Windows.txt`、`Start-TailBlink.cmd`、`Uninstall-TailBlink.cmd`、`VERSION.txt`、兩支 signed Shortcuts 與包內 `SHA256SUMS.txt`。
-- `Start-TailBlink.cmd` 使用 ASCII／CRLF 與完整引號路徑啟動 TailBlink，供一鍵啟動服務與配對頁；原有 EXE 直接啟動入口保留。
-- release ZIP 解壓後只需雙擊 `TailBlink.exe`；不得要求終端機、Go toolchain 或手動複製檔案。
-- CI 不保存或產生真實配對 token。
-- 本版沒有自動更新；升級前保留相容的 `config.json`，未知 config version 安全停止並提示重新設定。
+目前完整更名測試版為 **v0.2.0-alpha.3**，Windows 與 Linux 安裝包的程式及捷徑來自乾淨來源 commit `d2ec58333f7283d17e269ffeb18cfed34a7896ce`。後續純文件修正不改變套件的來源追溯記錄；套件內 `SOURCE.txt` 始終記錄實際建置來源，不以較新的文件 commit 冒充。
+
+目前 Git 工作樹追蹤 `dist/TailBlink-v0.2.0-alpha.3-windows-x64.zip`、`dist/TailBlink-v0.2.0-alpha.3-linux-x64.tar.gz` 及兩者 `.sha256`。舊版套件只保留在 Git 歷史及既有 Release，不留在目前檔案樹；早期 alpha.6／alpha.7 的相容性及本機建置紀錄不能套用到完整更名版本。
+
+Windows 套件包含 `TailBlink.exe`、已核對雜湊的 `tailblink-cloudflared-*`、第三方授權、`README-Windows.txt`、`Start-TailBlink.cmd`、`Uninstall-TailBlink.cmd`、四支 signed Shortcuts、`VERSION.txt`、`SOURCE.txt` 與涵蓋全部附帶檔案的 `SHA256SUMS.txt`。完整解壓後直接雙擊 EXE，不要求終端機或 Go toolchain；CMD 入口維持 ASCII／CRLF 及完整引號路徑。
+
+Linux 套件包含 `tailblink`、對應 cloudflared 及授權、四支 signed Shortcuts、安裝／解除安裝腳本、`tailblink.service`、版本／來源與 checksum 記錄。封裝檢查必須驗證可執行檔案的權限及 shell 腳本 LF 換行。
+
+發布前執行 Go 格式、vet、單元／整合／race 測試、捷徑來源與成品一致性、Windows 原生剪貼簿及 Debian 安裝／更新／移除回歸。macOS 負責解封四支已簽署捷徑，比對全部動作／參數；跨平台建置及驗證不代表完成 iPhone 或桌面 GUI 實機驗收。
+
+`python3 tools/check_branding.py` 對目前追蹤檔名、文字與二進位內容、ZIP／tar.gz 內部項目進行不分大小寫的舊名稱檢查。CI 不保存或產生真實配對 token。新增正式 GitHub Release 與倉庫網址更名是平台操作，不因檔案修改而自動完成。
+
+本版沒有自動更新。從先前命名版本升級，必須先用原版解除安裝程式移除桌面端，安裝 TailBlink 後重新安裝所需的兩支手機捷徑並配對；不提供舊名稱別名或憑證自動遷移。不要讓兩個命名版本同時執行。正常使用新版時，同一組捷徑不需因簡易隧道重啟而重裝，但必須掃新 QR。
 
 ## 12. 後續 Roadmap
 
-M2 僅執行第 13、14 節的單主機雙入口；未採用的 issue #1／#4 擴充範圍移至 [#5 待做功能](https://github.com/kuanfu0430/tailblink/issues/5)。其餘項目仍另行評估：
+M2 僅執行第 13、14 節的單主機雙入口；未採用的 issue #1／#4 擴充範圍移至 issue #5（待做功能）。其餘項目仍另行評估：
 
 1. 多主機管理、多目標切換與進階授權（待做，不屬 M2）。
 2. `text/uri-list`、HTML + plain fallback、PNG。

@@ -4,7 +4,9 @@
 
 `build_simple.py` 另建「TailBlink：簡易傳送／簡易取回」，只需 Shortcuts，使用獨立 `TailBlink-Simple/config.json`。兩種入口的捷徑不能混用。掃臨時隧道 QR 後按「連接並取回」，重啟隧道後重掃，不必重裝捷徑。
 
-alpha.2 修正備援剪貼簿票券在成功保存後未清除的問題，避免同次取回為空時下一次重放票券；從 alpha.1 升級須取代兩支簡易捷徑。連結／分享配對不清除原有文字，配對失敗及日常取回失敗亦保留剪貼簿。
+**v0.2.0-alpha.3 完整更名升級：** 先前命名版本的捷徑、設定路徑及配對格式不相容；請移除原版捷徑，從新版 QR 頁重新安裝對應兩支 TailBlink 捷徑並配對。只改捷徑顯示名稱不能完成遷移。
+
+歷史修正：alpha.2 修正備援剪貼簿票券在成功保存後未清除的問題，避免同次取回為空時下一次重放票券；從 alpha.1 升級須取代兩支簡易捷徑。連結／分享配對不清除原有文字，配對失敗及日常取回失敗亦保留剪貼簿。
 
 ## 重建與簽署
 
@@ -19,7 +21,7 @@ python3 shortcuts/sign_simple.py --verify
 python3 -m unittest discover -s shortcuts/tests -v
 ```
 
-簽署需要 Apple 簽署服務可用。sign.py 先解封候選檔核對所有 actions／參數，通過才更新 `dist/*.shortcut` 及 `manifest.json`。CI 在其他平台只做來源與成品 hash 及結構檢查，不會假裝重新簽署或執行捷徑。
+使用 Apple CLI 簽署需要 macOS 已登入 iCloud，且 Apple 簽署服務可用。`sign.py`／`sign_simple.py` 先解封候選檔核對所有 actions／參數，通過才更新 `dist/*.shortcut` 及對應 manifest。Windows／Linux CI 檢查來源與成品 hash 及結構；macOS CI 另解封已簽署成品並比對來源語意。CI 不重新簽署，也不執行需要使用者授權的捷徑動作。本次成品的簽署來源見 SPEC 0.1；一般重建腳本不會隱性上傳到遠端服務。
 
 ## Mac 原生整合測試
 
