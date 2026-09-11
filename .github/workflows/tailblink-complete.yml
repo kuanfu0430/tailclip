@@ -1,0 +1,120 @@
+name: Complete TailBlink rename
+
+on:
+  push:
+    branches: [chore/tailblink-rename-20260911]
+    paths: [.github/workflows/tailblink-complete.yml]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: tailblink-rename
+  cancel-in-progress: false
+
+jobs:
+  complete:
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: chore/tailblink-rename-20260911
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Prepare renamed sources using the reviewed transformation
+        run: |
+          python3 - <<'PY'
+          import pathlib, subprocess, textwrap
+          path = pathlib.Path('.github/workflows/tailblink-rename.yml')
+          workflow = path.read_text()
+          start = '      - name: Rename every tracked source and path\n'
+          end = '      - name: Rebuild and sign all four Apple Shortcuts\n'
+          block = workflow.split(start, 1)[1].split('        run: |\n', 1)[1].split(end, 1)[0]
+          subprocess.run(['bash', '-e', '-o', 'pipefail', '-c', textwrap.dedent(block)], check=True)
+          pathlib.Path('.github/workflows/tailblink-complete.yml').unlink()
+          spec = pathlib.Path('docs/SPEC.md')
+          text = spec.read_text().replace('新名称', '新名稱')
+          text = text.replace('以 Apple CLI 簽署並解封比對語意及 manifest', '完成簽署後以 macOS Apple Archive 工具解封比對語意及 manifest')
+          text += '\n### 0.1 更名成品簽署來源補充\n\nGitHub macOS runner 未登入 iCloud，無法直接執行 Apple Shortcuts 簽署。本次四支公開捷徑模板使用 Cherri 所採用的 RoutineHub HubSign 服務完成簽署，再以 macOS `aea`／`aa` 解封，逐一比對來源動作與 manifest。未傳送任何使用者剪貼簿、實際網址或配對憑證；此服務不是 TailBlink 執行時依賴。既有 `sign.py`／`sign_simple.py` 仍使用開發者自己的 macOS Apple CLI，不加入隱性遠端 fallback。\n'
+          spec.write_text(text, encoding='utf-8')
+          PY
+      - name: Sign public templates and verify every returned action
+        run: |
+          python3 - <<'PY'
+          import hashlib, json, pathlib, plistlib, sys, tempfile, time, urllib.error, urllib.request
+          sys.path.insert(0, str(pathlib.Path('shortcuts').resolve()))
+          from build import build
+          from build_simple import build_simple
+          from sign import semantic, unpack
+          root = pathlib.Path('shortcuts/dist')
+          for simple in (False, True):
+              manifest = {}
+              for direction in ('send', 'pull'):
+                  workflow = build_simple(direction) if simple else build(direction)
+                  raw = plistlib.dumps(workflow, fmt=plistlib.FMT_BINARY, sort_keys=True)
+                  xml = plistlib.dumps(workflow, fmt=plistlib.FMT_XML, sort_keys=True).decode('utf-8')
+                  name = 'TailBlink-' + ('Simple-' if simple else '') + direction.title() + '.shortcut'
+                  payload = json.dumps({'shortcutName': workflow.get('WFWorkflowName', name[:-9]), 'shortcut': xml}).encode('utf-8')
+                  request = urllib.request.Request('https://hubsign.routinehub.services/sign', data=payload,
+                      headers={'Content-Type': 'application/json', 'User-Agent': 'TailBlink-build/0.2.0'}, method='POST')
+                  for attempt in range(3):
+                      try:
+                          with urllib.request.urlopen(request, timeout=90) as response:
+                              signed = response.read(4 * 1024 * 1024 + 1)
+                          break
+                      except urllib.error.HTTPError as exc:
+                          if exc.code not in (429, 502, 503, 504) or attempt == 2: raise
+                          time.sleep(10 * (attempt + 1))
+                  if len(signed) > 4 * 1024 * 1024 or signed[:4] != b'AEA1':
+                      raise ValueError('Signing service returned an invalid artifact: ' + name)
+                  with tempfile.TemporaryDirectory(prefix='tailblink-verify-') as tmp:
+                      candidate = pathlib.Path(tmp) / name
+                      candidate.write_bytes(signed)
+                      actual = unpack(candidate)
+                      if semantic(actual) != semantic(workflow):
+                          raise ValueError('Signed workflow differs from reviewed source: ' + name)
+                  (root / name).write_bytes(signed)
+                  manifest[name] = {'source_sha256': hashlib.sha256(raw).hexdigest(),
+                      'artifact_sha256': hashlib.sha256(signed).hexdigest(), 'actions': len(workflow['WFWorkflowActions'])}
+                  print('Signed and semantically verified:', name, manifest[name]['actions'], 'actions', flush=True)
+              (root / ('simple-manifest.json' if simple else 'manifest.json')).write_text(json.dumps(manifest, indent=2) + '\n', encoding='utf-8')
+          PY
+          python3 shortcuts/sign.py --verify
+          python3 shortcuts/sign_simple.py --verify
+      - name: Verify renamed sources and metadata
+        run: |
+          test -z "$(gofmt -l .)"
+          go vet ./...
+          go test ./...
+          go test -race ./...
+          python3 -m unittest discover -s shortcuts/tests -v
+          python3 -m unittest discover -s packaging/tests -v
+          git add -A
+          python3 tools/check_branding.py
+          git diff --cached --check
+      - name: Commit clean source and rebuild complete packages
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'refactor: rename project and all runtime identities to TailBlink'
+          test -z "$(git status --porcelain)"
+          python3 packaging/package.py --version v0.2.0-alpha.3 --platform all --output dist
+          git add dist
+          python3 tools/check_branding.py
+          git diff --cached --check
+          git commit -m 'build: publish verified TailBlink alpha.3 installers'
+          git archive --format=zip --prefix=TailBlink/ HEAD -o "$RUNNER_TEMP/TailBlink-source.zip"
+          git diff origin/main HEAD --stat
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TailBlink-verified-source-and-installers
+          path: ${{ runner.temp }}/TailBlink-source.zip
+          retention-days: 7
+      - name: Publish tested branch only
+        run: |
+          git push origin HEAD:refs/heads/chore/tailblink-rename-20260911
+          echo "Delivered branch commit: $(git rev-parse HEAD)"
