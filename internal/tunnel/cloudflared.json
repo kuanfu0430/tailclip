@@ -5,19 +5,19 @@
       "url": "https://github.com/cloudflare/cloudflared/releases/download/2026.8.3/cloudflared-windows-amd64.exe",
       "archive_sha256": "83e726ed18ea78c5ad5213c4c3a3a27051393950d2bc8ed4de69bec12d14eaae",
       "sha256": "83e726ed18ea78c5ad5213c4c3a3a27051393950d2bc8ed4de69bec12d14eaae",
-      "filename": "tailclip-cloudflared-83e726ed18ea.exe"
+      "filename": "tailblink-cloudflared-83e726ed18ea.exe"
     },
     "linux-amd64": {
       "url": "https://github.com/cloudflare/cloudflared/releases/download/2026.8.3/cloudflared-linux-amd64",
       "archive_sha256": "f29324fe934d1e100617484c78deef803c4dc2cd351d645bbde42e96b4fccc5e",
       "sha256": "f29324fe934d1e100617484c78deef803c4dc2cd351d645bbde42e96b4fccc5e",
-      "filename": "tailclip-cloudflared-f29324fe934d"
+      "filename": "tailblink-cloudflared-f29324fe934d"
     },
     "darwin-arm64": {
       "url": "https://github.com/cloudflare/cloudflared/releases/download/2026.8.3/cloudflared-darwin-arm64.tgz",
       "archive_sha256": "40c9144d86df8937c5b43293a1f7d2d2107029aa74725023dd46b1b27154352f",
       "sha256": "50a04624531e7a98ddb65f1223905e32f84e7488ed3ee8dadcd3260aa8932603",
-      "filename": "tailclip-cloudflared-50a04624531e"
+      "filename": "tailblink-cloudflared-50a04624531e"
     }
   }
 }

@@ -12,7 +12,7 @@ def main():
     manifest={}
     for direction in ('send','pull'):
         workflow=build_simple(direction);raw=plistlib.dumps(workflow,fmt=plistlib.FMT_BINARY,sort_keys=True)
-        artifact=ROOT/'dist'/f'TailClip-Simple-{direction.title()}.shortcut'
+        artifact=ROOT/'dist'/f'TailBlink-Simple-{direction.title()}.shortcut'
         if not args.verify:
             with tempfile.TemporaryDirectory() as tmp:
                 source=Path(tmp)/'unsigned.shortcut';candidate=Path(tmp)/'signed.shortcut';source.write_bytes(raw)

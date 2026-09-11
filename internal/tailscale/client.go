@@ -17,14 +17,14 @@ import (
 )
 
 const (
-	ServePath   = "/tailclip"
+	ServePath   = "/tailblink"
 	AgentTarget = "http://127.0.0.1:17733"
 )
 
 var (
 	ErrNotInstalled  = errors.New("找不到 Tailscale CLI")
 	ErrNotRunning    = errors.New("Tailscale 尚未連線")
-	ErrServeConflict = errors.New("Tailscale Serve 的 /tailclip 已由其他服務使用")
+	ErrServeConflict = errors.New("Tailscale Serve 的 /tailblink 已由其他服務使用")
 )
 
 type Runner interface {
@@ -156,7 +156,7 @@ func (c *Client) ServeConfigured(ctx context.Context) (bool, error) {
 	return true, nil
 }
 
-// EnsureServe 只新增 TailClip 自己的 path；若路徑已有其他目標便安全停止。
+// EnsureServe 只新增 TailBlink 自己的 path；若路徑已有其他目標便安全停止。
 func (c *Client) EnsureServe(ctx context.Context) (bool, error) {
 	ctx, cancel := context.WithTimeout(ctx, 20*time.Second)
 	defer cancel()
@@ -176,7 +176,7 @@ func (c *Client) EnsureServe(ctx context.Context) (bool, error) {
 	return true, nil
 }
 
-// RemoveServe 只移除仍指向 TailClip Agent 的 path，絕不呼叫 serve reset。
+// RemoveServe 只移除仍指向 TailBlink Agent 的 path，絕不呼叫 serve reset。
 func (c *Client) RemoveServe(ctx context.Context) (bool, error) {
 	ctx, cancel := context.WithTimeout(ctx, 20*time.Second)
 	defer cancel()
@@ -209,12 +209,12 @@ func VerifyHealth(ctx context.Context, status Status) error {
 	}
 	response, err := http.DefaultClient.Do(request)
 	if err != nil {
-		return fmt.Errorf("無法連上 TailClip HTTPS health: %w", err)
+		return fmt.Errorf("無法連上 TailBlink HTTPS health: %w", err)
 	}
 	defer response.Body.Close()
 	if response.StatusCode != http.StatusOK {
 		_, _ = io.Copy(io.Discard, io.LimitReader(response.Body, 32<<10))
-		return fmt.Errorf("TailClip HTTPS health 回傳 HTTP %d", response.StatusCode)
+		return fmt.Errorf("TailBlink HTTPS health 回傳 HTTP %d", response.StatusCode)
 	}
 	var health struct {
 		Status  string `json:"status"`
@@ -222,10 +222,10 @@ func VerifyHealth(ctx context.Context, status Status) error {
 	}
 	decoder := json.NewDecoder(io.LimitReader(response.Body, 32<<10))
 	if err := decoder.Decode(&health); err != nil {
-		return fmt.Errorf("TailClip HTTPS health 回應無效: %w", err)
+		return fmt.Errorf("TailBlink HTTPS health 回應無效: %w", err)
 	}
-	if health.Status != "ok" || health.Service != "tailclip-agent" {
-		return errors.New("TailClip HTTPS health 回應不是預期的服務")
+	if health.Status != "ok" || health.Service != "tailblink-agent" {
+		return errors.New("TailBlink HTTPS health 回應不是預期的服務")
 	}
 	return nil
 }

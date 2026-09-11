@@ -12,8 +12,8 @@ import (
 	"os/signal"
 	"time"
 
-	"github.com/kuanfu0430/tailclip/internal/clipboard"
-	"github.com/kuanfu0430/tailclip/internal/simple"
+	"github.com/kuanfu0430/tailblink/internal/clipboard"
+	"github.com/kuanfu0430/tailblink/internal/simple"
 )
 
 func main() {

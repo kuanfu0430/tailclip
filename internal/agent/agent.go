@@ -14,13 +14,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kuanfu0430/tailclip/internal/api"
-	"github.com/kuanfu0430/tailclip/internal/clipboard"
-	"github.com/kuanfu0430/tailclip/internal/config"
-	"github.com/kuanfu0430/tailclip/internal/pairing"
-	"github.com/kuanfu0430/tailclip/internal/simple"
-	"github.com/kuanfu0430/tailclip/internal/tailscale"
-	"github.com/kuanfu0430/tailclip/internal/webui"
+	"github.com/kuanfu0430/tailblink/internal/api"
+	"github.com/kuanfu0430/tailblink/internal/clipboard"
+	"github.com/kuanfu0430/tailblink/internal/config"
+	"github.com/kuanfu0430/tailblink/internal/pairing"
+	"github.com/kuanfu0430/tailblink/internal/simple"
+	"github.com/kuanfu0430/tailblink/internal/tailscale"
+	"github.com/kuanfu0430/tailblink/internal/webui"
 )
 
 const (

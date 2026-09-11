@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"github.com/kuanfu0430/tailclip/internal/tunnel"
+	"github.com/kuanfu0430/tailblink/internal/tunnel"
 	"io"
 	"net"
 	"net/http"
@@ -15,8 +15,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kuanfu0430/tailclip/internal/clipboard"
-	"github.com/kuanfu0430/tailclip/internal/config"
+	"github.com/kuanfu0430/tailblink/internal/clipboard"
+	"github.com/kuanfu0430/tailblink/internal/config"
 )
 
 type fakeTunnel struct{ done chan struct{} }
@@ -106,7 +106,7 @@ func TestPairingTransferRevocationAndIsolation(t *testing.T) {
 			t.Fatal("管理路由外洩", p)
 		}
 	}
-	for name, value := range map[string]string{"Origin": "https://evil.example", "Sec-Fetch-Site": "same-origin", "X-TailClip-Client": "shortcuts-v2"} {
+	for name, value := range map[string]string{"Origin": "https://evil.example", "Sec-Fetch-Site": "same-origin", "X-TailBlink-Client": "shortcuts-v2"} {
 		r := httptest.NewRequest("GET", "https://fixture.trycloudflare.com/v1/status", nil)
 		r.Header.Set("Authorization", "Bearer "+second)
 		r.Header.Set(name, value)
@@ -174,7 +174,7 @@ func TestSetupAndDownloads(t *testing.T) {
 		t.Fatal("頁面外洩 Bearer")
 	}
 	for _, d := range []string{"Send", "Pull"} {
-		w := simpleRequest(s, "/shortcuts/TailClip-Simple-"+d+".shortcut", "", "")
+		w := simpleRequest(s, "/shortcuts/TailBlink-Simple-"+d+".shortcut", "", "")
 		if w.Code != 200 || !strings.HasPrefix(w.Body.String(), "AEA1") {
 			t.Fatal("未含已簽署捷徑")
 		}
@@ -296,7 +296,7 @@ func TestHealthRejectsRedirectAndWrongSession(t *testing.T) {
 		var requests int
 		http.DefaultTransport = roundTripFunc(func(r *http.Request) (*http.Response, error) {
 			requests++
-			return &http.Response{StatusCode: status, Header: http.Header{"Location": []string{"https://evil.example"}}, Body: io.NopCloser(strings.NewReader(`{"service":"tailclip-simple","session":"wrong"}`)), Request: r}, nil
+			return &http.Response{StatusCode: status, Header: http.Header{"Location": []string{"https://evil.example"}}, Body: io.NopCloser(strings.NewReader(`{"service":"tailblink-simple","session":"wrong"}`)), Request: r}, nil
 		})
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
 		err := s.verify(ctx, "https://fixture.trycloudflare.com", "expected", make(chan struct{}))

@@ -14,8 +14,8 @@ import (
 
 // 只在可丟棄的 Windows 工作階段啟用，避免一般 go test 改寫使用者剪貼簿。
 func TestWindowsClipboardIntegration(t *testing.T) {
-	if os.Getenv("TAILCLIP_WINDOWS_CLIPBOARD_TEST") != "1" {
-		t.Skip("需要隔離 Windows session 與 TAILCLIP_WINDOWS_CLIPBOARD_TEST=1")
+	if os.Getenv("TAILBLINK_WINDOWS_CLIPBOARD_TEST") != "1" {
+		t.Skip("需要隔離 Windows session 與 TAILBLINK_WINDOWS_CLIPBOARD_TEST=1")
 	}
 	backend := NewSynchronized(NewSystemBackend())
 	ctx := context.Background()

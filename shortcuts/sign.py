@@ -38,7 +38,7 @@ def unpack(path: Path) -> dict:
     public_key = der[-65:]
     if len(public_key) != 65 or public_key[0] != 4:
         raise ValueError("不支援的簽章公鑰")
-    with tempfile.TemporaryDirectory(prefix="tailclip-sign-") as tmp:
+    with tempfile.TemporaryDirectory(prefix="tailblink-sign-") as tmp:
         archive = Path(tmp) / "payload.aar"
         output = Path(tmp) / "output"
         output.mkdir()
@@ -56,9 +56,9 @@ def main():
     for direction in ("send", "pull"):
         workflow = build(direction)
         raw = plistlib.dumps(workflow, fmt=plistlib.FMT_BINARY, sort_keys=True)
-        artifact = ROOT / "dist" / f"TailClip-{direction.title()}.shortcut"
+        artifact = ROOT / "dist" / f"TailBlink-{direction.title()}.shortcut"
         if not args.verify:
-            with tempfile.TemporaryDirectory(prefix="tailclip-build-") as tmp:
+            with tempfile.TemporaryDirectory(prefix="tailblink-build-") as tmp:
                 unsigned = Path(tmp) / artifact.name
                 unsigned.write_bytes(raw)
                 candidate = Path(tmp) / "signed.shortcut"

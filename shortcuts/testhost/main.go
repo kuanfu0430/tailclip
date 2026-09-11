@@ -13,9 +13,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kuanfu0430/tailclip/internal/api"
-	"github.com/kuanfu0430/tailclip/internal/clipboard"
-	"github.com/kuanfu0430/tailclip/internal/config"
+	"github.com/kuanfu0430/tailblink/internal/api"
+	"github.com/kuanfu0430/tailblink/internal/clipboard"
+	"github.com/kuanfu0430/tailblink/internal/config"
 )
 
 type source struct{ config.Config }
@@ -57,15 +57,15 @@ func main() {
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]any{"text": text, "requests": requests})
 	})
-	mux.Handle("/tailclip/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	mux.Handle("/tailblink/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		mu.Lock()
 		requests = append(requests, r.Method+" "+r.URL.Path)
 		mu.Unlock()
-		http.StripPrefix("/tailclip", handler).ServeHTTP(w, r)
+		http.StripPrefix("/tailblink", handler).ServeHTTP(w, r)
 	}))
 	url := "http://" + listener.Addr().String()
 	data, _ := json.Marshal(map[string]any{"url": url, "pairing": map[string]any{
-		"version": 1, "base_url": url + "/tailclip/v1", "token": token,
+		"version": 1, "base_url": url + "/tailblink/v1", "token": token,
 		"device_name": "隔離測試電腦", "tailscale_device": "fixture",
 	}})
 	if err := os.WriteFile(*state, data, 0600); err != nil {

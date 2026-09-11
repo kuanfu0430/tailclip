@@ -111,7 +111,7 @@ func TestDashboardHostOpensOnDemandAndRotates(t *testing.T) {
 		}
 		return DashboardData{
 			DeviceName: "工作電腦", DNSName: "work.example.ts.net",
-			PairingURL: "https://work.example.ts.net/tailclip/setup/secret",
+			PairingURL: "https://work.example.ts.net/tailblink/setup/secret",
 			ExpiresAt:  time.Now().Add(time.Minute), ClipboardAvailable: true, ShortcutsReady: true,
 		}, nil
 	}

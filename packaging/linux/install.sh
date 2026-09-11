@@ -4,11 +4,11 @@ set -Eeuo pipefail
 readonly agent_port="17733"
 readonly dashboard_port="17734"
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
-binary_source="${script_dir}/tailclip"
-service_source="${script_dir}/tailclip.service"
+binary_source="${script_dir}/tailblink"
+service_source="${script_dir}/tailblink.service"
 
 fail() {
-  printf 'TailClip 安裝失敗：%s\n' "$1" >&2
+  printf 'TailBlink 安裝失敗：%s\n' "$1" >&2
   exit 1
 }
 
@@ -23,11 +23,11 @@ case "${ID:-}:${VERSION_ID:-}" in
 esac
 [[ -n "${WAYLAND_DISPLAY:-}" ]] || fail "找不到 Wayland 圖形工作階段；請在 GNOME Wayland 登入後執行。"
 [[ -n "${XDG_RUNTIME_DIR:-}" ]] || fail "找不到 XDG_RUNTIME_DIR；請從桌面使用者 session 執行。"
-[[ -x "${binary_source}" ]] || fail "release 目錄缺少可執行的 tailclip。"
-[[ -r "${service_source}" ]] || fail "release 目錄缺少 tailclip.service。"
+[[ -x "${binary_source}" ]] || fail "release 目錄缺少可執行的 tailblink。"
+[[ -r "${service_source}" ]] || fail "release 目錄缺少 tailblink.service。"
 [[ -r "${script_dir}/CLOUDFLARED.txt" ]] || fail "release 目錄缺少 CLOUDFLARED.txt。"
 companion="$(cat "${script_dir}/CLOUDFLARED.txt")"
-[[ "$companion" =~ ^tailclip-cloudflared-[a-f0-9]{12}$ ]] || fail "隧道檔名無效。"
+[[ "$companion" =~ ^tailblink-cloudflared-[a-f0-9]{12}$ ]] || fail "隧道檔名無效。"
 [[ -x "${script_dir}/${companion}" ]] || fail "release 目錄缺少隧道程式。"
 
 command -v systemctl >/dev/null || fail "找不到 systemctl。"
@@ -59,8 +59,8 @@ fi
 user_name="$(id -un)"
 user_home="$(getent passwd "${user_name}" | cut -d: -f6)"
 [[ -n "${user_home}" && "${user_home}" == /home/* ]] || fail "無法安全確認使用者家目錄。"
-binary_target="${user_home}/.local/bin/tailclip"
-service_target="${user_home}/.config/systemd/user/tailclip.service"
+binary_target="${user_home}/.local/bin/tailblink"
+service_target="${user_home}/.config/systemd/user/tailblink.service"
 
 install -d -m 0755 "$(dirname -- "${binary_target}")"
 install -m 0755 "${script_dir}/${companion}" "$(dirname -- "${binary_target}")/${companion}.new"
@@ -72,8 +72,8 @@ install -m 0644 "${service_source}" "${service_target}"
 
 systemctl --user import-environment WAYLAND_DISPLAY XDG_RUNTIME_DIR DBUS_SESSION_BUS_ADDRESS >/dev/null 2>&1 || true
 systemctl --user daemon-reload
-systemctl --user enable tailclip.service
-systemctl --user restart tailclip.service
+systemctl --user enable tailblink.service
+systemctl --user restart tailblink.service
 
 for _ in {1..40}; do
   if curl --silent --fail --max-time 1 "http://127.0.0.1:${agent_port}/v1/health" >/dev/null 2>&1; then
@@ -81,8 +81,8 @@ for _ in {1..40}; do
   fi
   sleep 0.125
 done
-curl --silent --fail --max-time 1 "http://127.0.0.1:${agent_port}/v1/health" >/dev/null || fail "Agent 未能啟動；請執行 journalctl --user -u tailclip 查看原因。"
+curl --silent --fail --max-time 1 "http://127.0.0.1:${agent_port}/v1/health" >/dev/null || fail "Agent 未能啟動；請執行 journalctl --user -u tailblink 查看原因。"
 
 
 "${binary_target}" open || fail "Agent 已安裝，但無法開啟本機設定頁。請執行 ${binary_target} open。"
-printf '\nTailClip 已安裝。請在設定頁選擇連線方式；簡易連線請用 iPhone 相機掃 QR，安裝簡易捷徑後按「連接並取回」。\n'
+printf '\nTailBlink 已安裝。請在設定頁選擇連線方式；簡易連線請用 iPhone 相機掃 QR，安裝簡易捷徑後按「連接並取回」。\n'

@@ -8,14 +8,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kuanfu0430/tailclip/internal/pairing"
+	"github.com/kuanfu0430/tailblink/internal/pairing"
 )
 
 func newSession(t *testing.T) (*pairing.Manager, pairing.Session) {
 	t.Helper()
 	manager := pairing.NewManager()
 	session, err := manager.Create(pairing.Data{
-		Version: 1, BaseURL: "https://work.example.ts.net/tailclip/v1", Token: "top-secret-token",
+		Version: 1, BaseURL: "https://work.example.ts.net/tailblink/v1", Token: "top-secret-token",
 		DeviceName: "工作電腦", TailscaleDevice: "work",
 	})
 	if err != nil {
@@ -43,7 +43,7 @@ func TestPairingPageHeadersAndPayload(t *testing.T) {
 	if !strings.Contains(recorder.Body.String(), `id="payload"`) {
 		t.Fatal("配對頁缺少 payload")
 	}
-	if !strings.Contains(recorder.Body.String(), session.Nonce+"/TailClip-Send.shortcut") {
+	if !strings.Contains(recorder.Body.String(), session.Nonce+"/TailBlink-Send.shortcut") {
 		t.Fatal("捷徑下載連結必須保留目前 nonce")
 	}
 }
@@ -59,8 +59,8 @@ func TestExpiredAndShortcutDownload(t *testing.T) {
 	}
 
 	for _, test := range []struct{ route, filename, body string }{
-		{"TailClip-Send.shortcut", "TailClip：傳送.shortcut", "send"},
-		{"TailClip-Pull.shortcut", "TailClip：取回.shortcut", "pull"},
+		{"TailBlink-Send.shortcut", "TailBlink：傳送.shortcut", "send"},
+		{"TailBlink-Pull.shortcut", "TailBlink：取回.shortcut", "pull"},
 	} {
 		recorder = httptest.NewRecorder()
 		handler.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/setup/"+session.Nonce+"/"+test.route, nil))
@@ -79,7 +79,7 @@ func TestRenderDashboardDoesNotEmbedPairingSecret(t *testing.T) {
 	secret := "pairing-secret-must-not-appear"
 	err := RenderDashboard(recorder, DashboardData{
 		DeviceName: "工作電腦", DNSName: "work.example.ts.net",
-		PairingURL: "https://work.example.ts.net/tailclip/setup/" + secret,
+		PairingURL: "https://work.example.ts.net/tailblink/setup/" + secret,
 		ExpiresAt:  time.Now().Add(time.Minute), ClipboardAvailable: true, ShortcutsReady: true,
 	})
 	if err != nil {

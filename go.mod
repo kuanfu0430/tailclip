@@ -1,4 +1,4 @@
-module github.com/kuanfu0430/tailclip
+module github.com/kuanfu0430/tailblink
 
 go 1.27.1
 

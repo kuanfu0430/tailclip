@@ -1,0 +1,15 @@
+[Unit]
+Description=TailBlink 使用者剪貼簿 Agent
+Documentation=https://github.com/kuanfu0430/tailblink
+After=graphical-session.target
+PartOf=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/tailblink agent
+Restart=on-failure
+RestartSec=2
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+
+[Install]
+WantedBy=graphical-session.target

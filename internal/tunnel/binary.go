@@ -1,4 +1,4 @@
-// Package tunnel 管理 TailClip 專用的 Cloudflare 臨時隧道程序。
+// Package tunnel 管理 TailBlink 專用的 Cloudflare 臨時隧道程序。
 package tunnel
 
 import (
@@ -42,11 +42,11 @@ func Verify(path string) error {
 	}
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return errors.New("缺少隧道程式，請重新下載並完整解壓 TailClip 發行包")
+		return errors.New("缺少隧道程式，請重新下載並完整解壓 TailBlink 發行包")
 	}
 	h := sha256.Sum256(data)
 	if hex.EncodeToString(h[:]) != b.SHA256 {
-		return errors.New("隧道程式校驗失敗，請重新下載並完整解壓 TailClip 發行包")
+		return errors.New("隧道程式校驗失敗，請重新下載並完整解壓 TailBlink 發行包")
 	}
 	return nil
 }

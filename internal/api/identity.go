@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-const ShortcutClientHeader = "X-TailClip-Client"
+const ShortcutClientHeader = "X-TailBlink-Client"
 const ShortcutClientVersion = "shortcuts-v2"
 
 // OwnerIdentity 每次取得目前本機節點擁有者與 HTTPS 名稱，不採用遠端輸入。
@@ -30,7 +30,7 @@ func (s *Server) authorize(r *http.Request) *authorizationError {
 	// 新版明確走身分驗證，不能因仍帶著舊 token 而繞過拒絕。
 	if len(markers) != 1 || markers[0] != ShortcutClientVersion ||
 		len(r.Header.Values("Origin")) != 0 || len(r.Header.Values("Sec-Fetch-Site")) != 0 {
-		return &authorizationError{http.StatusForbidden, "request_not_allowed", "請使用 TailClip 捷徑操作。"}
+		return &authorizationError{http.StatusForbidden, "request_not_allowed", "請使用 TailBlink 捷徑操作。"}
 	}
 	remote, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil || !net.ParseIP(remote).IsLoopback() {

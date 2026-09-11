@@ -20,6 +20,8 @@ jobs:
         with:
           go-version: 1.27.1
           cache: true
+      - name: TailBlink 名稱與封裝殘留檢查
+        run: python tools/check_branding.py
       - name: 格式檢查
         if: runner.os == 'Linux'
         shell: bash
@@ -35,12 +37,12 @@ jobs:
       - name: Windows 原生剪貼簿回歸
         if: runner.os == 'Windows'
         env:
-          TAILCLIP_WINDOWS_CLIPBOARD_TEST: "1"
+          TAILBLINK_WINDOWS_CLIPBOARD_TEST: "1"
         run: go test -count=1 ./internal/clipboard -run TestWindowsClipboardIntegration -v
       - name: Debian 無 Tailscale 安裝、更新與移除
         if: runner.os == 'Linux'
         run: >-
-          docker run --rm -e TAILCLIP_INSTALL_TEST=1
+          docker run --rm -e TAILBLINK_INSTALL_TEST=1
           -v "${{ github.workspace }}:/work:ro" debian:13 bash -c
           'apt-get update -qq && apt-get install -y -qq python3 && bash /work/packaging/linux/test-install.sh'
       - name: Race 測試
@@ -48,7 +50,7 @@ jobs:
         run: go test -race ./...
 
   build:
-    needs: test
+    needs: [test, shortcut-signatures]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -62,3 +64,12 @@ jobs:
         with:
           name: build-candidates
           path: build-output/
+
+  shortcut-signatures:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify signed shortcuts against current source
+        run: |
+          python3 shortcuts/sign.py --verify
+          python3 shortcuts/sign_simple.py --verify

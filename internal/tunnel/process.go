@@ -49,7 +49,7 @@ func startBinary(ctx context.Context, binary, address string) (Handle, error) {
 	if err != nil || host != "127.0.0.1" {
 		return nil, errors.New("隧道只可連接本機專用埠")
 	}
-	dir, err := os.MkdirTemp("", "tailclip-tunnel-")
+	dir, err := os.MkdirTemp("", "tailblink-tunnel-")
 	if err != nil {
 		return nil, err
 	}
